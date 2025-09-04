@@ -3,7 +3,7 @@
  * @author Xtranumerik Inc.
  */
 
-import { ToolDefinition, Display, ApiError } from '../types.js';
+import { ToolDefinition, Display } from '../types.js';
 import XiboClient from '../xibo-client.js';
 
 /**
@@ -37,22 +37,22 @@ const displayList: ToolDefinition = {
         return 'Aucun écran trouvé avec les critères spécifiés.';
       }
 
-      let result = `📺 **Écrans trouvés: ${displays.length}**\n\n`;
+      let result = `📺 **Écrans trouvés: ${displays.length}**\\n\\n`;
       
       displays.forEach((display, index) => {
         const status = display.loggedIn ? '🟢 En ligne' : '🔴 Hors ligne';
         const licensed = display.licensed ? '✅ Licencié' : '❌ Non licencié';
         
-        result += `**${index + 1}. ${display.display}**\n`;
-        result += `   ID: ${display.displayId}\n`;
-        result += `   Statut: ${status}\n`;
-        result += `   Licence: ${licensed}\n`;
-        if (display.description) result += `   Description: ${display.description}\n`;
-        if (display.city) result += `   Ville: ${display.city}\n`;
-        if (display.address) result += `   Adresse: ${display.address}\n`;
-        if (display.lastAccessed) result += `   Dernier accès: ${display.lastAccessed}\n`;
-        if (display.tags && display.tags.length > 0) result += `   Tags: ${display.tags.join(', ')}\n`;
-        result += `\n`;
+        result += `**${index + 1}. ${display.display}**\\n`;
+        result += `   ID: ${display.displayId}\\n`;
+        result += `   Statut: ${status}\\n`;
+        result += `   Licence: ${licensed}\\n`;
+        if (display.description) result += `   Description: ${display.description}\\n`;
+        if (display.city) result += `   Ville: ${display.city}\\n`;
+        if (display.address) result += `   Adresse: ${display.address}\\n`;
+        if (display.lastAccessed) result += `   Dernier accès: ${display.lastAccessed}\\n`;
+        if (display.tags && display.tags.length > 0) result += `   Tags: ${display.tags.join(', ')}\\n`;
+        result += `\\n`;
       });
 
       return result;
@@ -81,41 +81,41 @@ const displayGet: ToolDefinition = {
       const status = display.loggedIn ? '🟢 En ligne' : '🔴 Hors ligne';
       const licensed = display.licensed ? '✅ Licencié' : '❌ Non licencié';
       
-      let result = `📺 **Détails de l'écran: ${display.display}**\n\n`;
-      result += `**Informations générales:**\n`;
-      result += `   ID: ${display.displayId}\n`;
-      result += `   Nom: ${display.display}\n`;
-      result += `   Statut: ${status}\n`;
-      result += `   Licence: ${licensed}\n`;
-      if (display.description) result += `   Description: ${display.description}\n`;
+      let result = `📺 **Détails de l'écran: ${display.display}**\\n\\n`;
+      result += `**Informations générales:**\\n`;
+      result += `   ID: ${display.displayId}\\n`;
+      result += `   Nom: ${display.display}\\n`;
+      result += `   Statut: ${status}\\n`;
+      result += `   Licence: ${licensed}\\n`;
+      if (display.description) result += `   Description: ${display.description}\\n`;
       
-      result += `\n**Localisation:**\n`;
-      if (display.address) result += `   Adresse: ${display.address}\n`;
-      if (display.city) result += `   Ville: ${display.city}\n`;
-      if (display.country) result += `   Pays: ${display.country}\n`;
+      result += `\\n**Localisation:**\\n`;
+      if (display.address) result += `   Adresse: ${display.address}\\n`;
+      if (display.city) result += `   Ville: ${display.city}\\n`;
+      if (display.country) result += `   Pays: ${display.country}\\n`;
       
-      result += `\n**Informations techniques:**\n`;
-      if (display.clientType) result += `   Type de client: ${display.clientType}\n`;
-      if (display.clientVersion) result += `   Version: ${display.clientVersion}\n`;
-      if (display.clientCode) result += `   Code client: ${display.clientCode}\n`;
+      result += `\\n**Informations techniques:**\\n`;
+      if (display.clientType) result += `   Type de client: ${display.clientType}\\n`;
+      if (display.clientVersion) result += `   Version: ${display.clientVersion}\\n`;
+      if (display.clientCode) result += `   Code client: ${display.clientCode}\\n`;
       
-      result += `\n**Layouts:**\n`;
-      result += `   Layout par défaut: ${display.defaultLayoutId}\n`;
-      if (display.currentLayoutId) result += `   Layout actuel: ${display.currentLayoutId}\n`;
+      result += `\\n**Layouts:**\\n`;
+      result += `   Layout par défaut: ${display.defaultLayoutId}\\n`;
+      if (display.currentLayoutId) result += `   Layout actuel: ${display.currentLayoutId}\\n`;
       
       if (display.storageAvailableSpace && display.storageTotalSpace) {
         const usedSpace = display.storageTotalSpace - display.storageAvailableSpace;
         const usedPercent = Math.round((usedSpace / display.storageTotalSpace) * 100);
-        result += `\n**Stockage:**\n`;
-        result += `   Espace total: ${(display.storageTotalSpace / 1024 / 1024).toFixed(2)} MB\n`;
-        result += `   Espace libre: ${(display.storageAvailableSpace / 1024 / 1024).toFixed(2)} MB\n`;
-        result += `   Utilisation: ${usedPercent}%\n`;
+        result += `\\n**Stockage:**\\n`;
+        result += `   Espace total: ${(display.storageTotalSpace / 1024 / 1024).toFixed(2)} MB\\n`;
+        result += `   Espace libre: ${(display.storageAvailableSpace / 1024 / 1024).toFixed(2)} MB\\n`;
+        result += `   Utilisation: ${usedPercent}%\\n`;
       }
       
-      if (display.lastAccessed) result += `\n**Dernière activité:** ${display.lastAccessed}\n`;
+      if (display.lastAccessed) result += `\\n**Dernière activité:** ${display.lastAccessed}\\n`;
       
       if (display.tags && display.tags.length > 0) {
-        result += `\n**Tags:** ${display.tags.join(', ')}\n`;
+        result += `\\n**Tags:** ${display.tags.join(', ')}\\n`;
       }
 
       return result;
@@ -285,14 +285,14 @@ const displaysByZone: ToolDefinition = {
       }
 
       const action = params.exclude ? 'exclus de' : 'dans';
-      let result = `📺 **Écrans ${action} la zone "${zone.name}": ${filteredDisplays.length}**\n\n`;
+      let result = `📺 **Écrans ${action} la zone "${zone.name}": ${filteredDisplays.length}**\\n\\n`;
       
       filteredDisplays.forEach((display, index) => {
         const status = display.loggedIn ? '🟢' : '🔴';
-        result += `${status} **${index + 1}. ${display.display}** (ID: ${display.displayId})\n`;
-        if (display.city) result += `   Ville: ${display.city}\n`;
-        if (display.address) result += `   Adresse: ${display.address}\n`;
-        result += `\n`;
+        result += `${status} **${index + 1}. ${display.display}** (ID: ${display.displayId})\\n`;
+        if (display.city) result += `   Ville: ${display.city}\\n`;
+        if (display.address) result += `   Adresse: ${display.address}\\n`;
+        result += `\\n`;
       });
 
       return result;
