@@ -17,6 +17,13 @@ import {
 import { getConfig } from './config/index.js';
 import XiboClient from './xibo-client.js';
 import { displayTools } from './tools/displays.js';
+import { layoutTools } from './tools/layouts.js';
+import { mediaTools } from './tools/media.js';
+import { campaignTools } from './tools/campaigns.js';
+import { playlistTools } from './tools/playlists.js';
+import { scheduleTools } from './tools/schedules.js';
+import { displayGroupTools } from './tools/display-groups.js';
+import { broadcastTools } from './tools/broadcast.js';
 import { ToolDefinition } from './types.js';
 
 // ASCII Art Logo
@@ -70,23 +77,36 @@ class XiboMCPServer {
   private setupTools(): void {
     console.log('🛠️  Loading MCP tools...');
 
-    // Load display tools for now (more to be added)
+    // Load all tool categories
     const toolCategories = [
-      displayTools
+      { name: 'Displays', tools: displayTools, count: displayTools.length },
+      { name: 'Layouts', tools: layoutTools, count: layoutTools.length },
+      { name: 'Media', tools: mediaTools, count: mediaTools.length },
+      { name: 'Campaigns', tools: campaignTools, count: campaignTools.length },
+      { name: 'Playlists', tools: playlistTools, count: playlistTools.length },
+      { name: 'Schedules', tools: scheduleTools, count: scheduleTools.length },
+      { name: 'Display Groups', tools: displayGroupTools, count: displayGroupTools.length },
+      { name: 'Broadcasting', tools: broadcastTools, count: broadcastTools.length }
     ];
 
     let totalTools = 0;
     toolCategories.forEach(category => {
-      category.forEach(tool => {
+      category.tools.forEach(tool => {
         this.tools.set(tool.name, tool);
         totalTools++;
       });
     });
 
-    console.log(`✅ Loaded ${totalTools} tools`);
-    console.log('\n📊 Available Tool Categories:');
-    console.log('   - Displays: Control and monitor display devices');
-    console.log('   - More categories coming soon...');
+    console.log(`✅ Loaded ${totalTools} tools across ${toolCategories.length} categories`);
+    console.log('\n📊 Tool Categories:');
+    toolCategories.forEach(category => {
+      console.log(`   - ${category.name}: ${category.count} tools`);
+    });
+    console.log('\n🎯 Key Features:');
+    console.log('   - Complete Xibo API integration');
+    console.log('   - Intelligent geographic broadcasting');
+    console.log('   - Natural language control');
+    console.log('   - Professional Xtranumerik branding');
   }
 
   private setupHandlers(): void {
@@ -161,6 +181,17 @@ class XiboMCPServer {
         throw new Error('Failed to connect to Xibo CMS. Please check your configuration.');
       }
 
+      // Get server info
+      try {
+        const serverInfo = await this.xiboClient.getServerInfo();
+        if (serverInfo.version) {
+          console.log(`ℹ️  Connected to Xibo CMS version ${serverInfo.version}`);
+        }
+      } catch (error) {
+        // Server info not critical
+        console.log('ℹ️  Connected to Xibo CMS (version info unavailable)');
+      }
+
       // Start the server
       const transport = new StdioServerTransport();
       await this.server.connect(transport);
@@ -176,6 +207,14 @@ class XiboMCPServer {
       console.log('   "Mets cette publicité dans tous mes écrans sauf ceux à Québec"');
       console.log('   "Montre-moi l\'état de tous les écrans publicitaires"');
       console.log('   "Programme cette campagne pour demain matin"');
+      console.log('   "Crée une nouvelle mise en page avec 3 régions"');
+      console.log('   "Diffuse ce message urgent sur TOUS les écrans"');
+      console.log('\n🎯 Fonctionnalités clés disponibles:');
+      console.log('   - Diffusion intelligente avec filtres géographiques');
+      console.log('   - Gestion complète des écrans et groupes');
+      console.log('   - Création et programmation de campagnes');
+      console.log('   - Gestion des médias et playlists');
+      console.log('   - Contrôle des layouts et régions');
       console.log('\n' + '='.repeat(50));
       
     } catch (error: any) {
