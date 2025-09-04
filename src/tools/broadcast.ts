@@ -4,7 +4,7 @@
  * @author Xtranumerik Inc.
  */
 
-import { ToolDefinition, Display, BroadcastConfig } from '../types.js';
+import { ToolDefinition, Display } from '../types.js';
 import XiboClient from '../xibo-client.js';
 
 const broadcastAd: ToolDefinition = {
@@ -83,7 +83,7 @@ const broadcastAd: ToolDefinition = {
           const includeZones = params.includeZones.split(',').map((zone: string) => zone.trim());
           targetDisplays = targetDisplays.filter(display => {
             if (!display.city) return false;
-            return includeZones.some(zoneName => {
+            return includeZones.some((zoneName: string) => {
               const zone = config.geoZones?.[zoneName];
               if (!zone) return false;
               return zone.cities.includes('all') || 
@@ -96,7 +96,7 @@ const broadcastAd: ToolDefinition = {
           const excludeZones = params.excludeZones.split(',').map((zone: string) => zone.trim());
           targetDisplays = targetDisplays.filter(display => {
             if (!display.city) return true;
-            return !excludeZones.some(zoneName => {
+            return !excludeZones.some((zoneName: string) => {
               const zone = config.geoZones?.[zoneName];
               if (!zone) return false;
               return zone.cities.includes('all') || 
