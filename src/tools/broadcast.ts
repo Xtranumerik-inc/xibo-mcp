@@ -19,4 +19,235 @@ const broadcastAd: ToolDefinition = {
     { name: 'includeZones', type: 'string', description: 'Include geographic zones (montreal_region, quebec_region, national)', required: false },
     { name: 'excludeZones', type: 'string', description: 'Exclude geographic zones', required: false },
     { name: 'displayIds', type: 'string', description: 'Specific display IDs (comma-separated)', required: false },
-    { name: 'priority', type: 'string', description: 'Broadcast priority', required: false, default: 'normal', enum: ['low', 'normal', 'high', 'urgent'] },\n    { name: 'duration', type: 'number', description: 'Duration in seconds (optional)', required: false },\n    { name: 'layoutId', type: 'number', description: 'Target layout ID (if not specified, creates new campaign)', required: false }\n  ],\n  handler: async (params: any) => {\n    const client: XiboClient = params._xiboClient;\n    const config = params._config;\n    \n    try {\n      // Step 1: Get all displays\n      const displayResponse = await client.get<Display[]>('/display');\n      const allDisplays = displayResponse.data;\n      \n      if (!allDisplays || allDisplays.length === 0) {\n        return 'Aucun écran disponible pour la diffusion.';\n      }\n\n      // Step 2: Apply intelligent filtering\n      let targetDisplays = allDisplays.filter(display => display.licensed && display.loggedIn);\n      \n      // Filter by specific display IDs\n      if (params.displayIds) {\n        const ids = params.displayIds.split(',').map((id: string) => parseInt(id.trim()));\n        targetDisplays = targetDisplays.filter(display => ids.includes(display.displayId));\n      } else {\n        // Apply tag filters\n        if (params.includeTags) {\n          const includeTags = params.includeTags.split(',').map((tag: string) => tag.trim().toLowerCase());\n          targetDisplays = targetDisplays.filter(display => \n            display.tags && display.tags.some(tag => \n              includeTags.includes(tag.toLowerCase())\n            )\n          );\n        }\n        \n        if (params.excludeTags) {\n          const excludeTags = params.excludeTags.split(',').map((tag: string) => tag.trim().toLowerCase());\n          targetDisplays = targetDisplays.filter(display => \n            !display.tags || !display.tags.some(tag => \n              excludeTags.includes(tag.toLowerCase())\n            )\n          );\n        }\n        \n        // Apply city filters\n        if (params.includeCities) {\n          const includeCities = params.includeCities.split(',').map((city: string) => city.trim().toLowerCase());\n          targetDisplays = targetDisplays.filter(display => \n            display.city && includeCities.includes(display.city.toLowerCase())\n          );\n        }\n        \n        if (params.excludeCities) {\n          const excludeCities = params.excludeCities.split(',').map((city: string) => city.trim().toLowerCase());\n          targetDisplays = targetDisplays.filter(display => \n            !display.city || !excludeCities.includes(display.city.toLowerCase())\n          );\n        }\n        \n        // Apply zone filters\n        if (params.includeZones) {\n          const includeZones = params.includeZones.split(',').map((zone: string) => zone.trim());\n          targetDisplays = targetDisplays.filter(display => {\n            if (!display.city) return false;\n            return includeZones.some(zoneName => {\n              const zone = config.geoZones?.[zoneName];\n              if (!zone) return false;\n              return zone.cities.includes('all') || \n                     zone.cities.some((city: string) => city.toLowerCase() === display.city!.toLowerCase());\n            });\n          });\n        }\n        \n        if (params.excludeZones) {\n          const excludeZones = params.excludeZones.split(',').map((zone: string) => zone.trim());\n          targetDisplays = targetDisplays.filter(display => {\n            if (!display.city) return true;\n            return !excludeZones.some(zoneName => {\n              const zone = config.geoZones?.[zoneName];\n              if (!zone) return false;\n              return zone.cities.includes('all') || \n                     zone.cities.some((city: string) => city.toLowerCase() === display.city!.toLowerCase());\n            });\n          });\n        }\n      }\n      \n      if (targetDisplays.length === 0) {\n        return 'Aucun écran ne correspond aux critères de filtrage spécifiés.';\n      }\n      \n      // Step 3: Create or use layout\n      let layoutId = params.layoutId;\n      if (!layoutId) {\n        // Create a simple layout with the media\n        const layoutResponse = await client.post('/layout', {\n          layout: `Broadcast_${Date.now()}`,\n          width: 1920,\n          height: 1080\n        });\n        layoutId = layoutResponse.data.layoutId;\n      }\n      \n      // Step 4: Create campaign\n      const campaignResponse = await client.post('/campaign', {\n        campaign: `Broadcast_Campaign_${Date.now()}`\n      });\n      const campaignId = campaignResponse.data.campaignId;\n      \n      // Step 5: Assign layout to campaign\n      await client.post(`/campaign/layout/assign/${campaignId}`, {\n        layoutId: layoutId,\n        displayOrder: 1\n      });\n      \n      // Step 6: Schedule to target displays\n      const scheduledDisplays: string[] = [];\n      const errors: string[] = [];\n      \n      for (const display of targetDisplays) {\n        try {\n          const scheduleData = {\n            eventTypeId: 1, // Layout event\n            campaignId: campaignId,\n            displayGroupId: display.displayGroupId,\n            fromDt: new Date().toISOString(),\n            toDt: new Date(Date.now() + (params.duration || 3600) * 1000).toISOString(), // 1 hour default\n            isPriority: params.priority === 'high' || params.priority === 'urgent' ? 1 : 0,\n            displayOrder: params.priority === 'urgent' ? 1 : 10\n          };\n          \n          await client.post('/schedule', scheduleData);\n          scheduledDisplays.push(`${display.display} (${display.city || 'N/A'})`);\n        } catch (error: any) {\n          errors.push(`${display.display}: ${error.message}`);\n        }\n      }\n      \n      // Step 7: Generate summary report\n      let result = `🚀 **Diffusion intelligente terminée!**\\n\\n`;\n      result += `📊 **Résumé:**\\n`;\n      result += `   Média: ${params.mediaId}\\n`;\n      result += `   Campagne: ${campaignId}\\n`;\n      result += `   Layout: ${layoutId}\\n`;\n      result += `   Priorité: ${params.priority || 'normal'}\\n\\n`;\n      \n      result += `✅ **Écrans ciblés avec succès (${scheduledDisplays.length}):**\\n`;\n      scheduledDisplays.forEach((display, index) => {\n        result += `   ${index + 1}. ${display}\\n`;\n      });\n      \n      if (errors.length > 0) {\n        result += `\\n❌ **Erreurs (${errors.length}):**\\n`;\n        errors.forEach((error, index) => {\n          result += `   ${index + 1}. ${error}\\n`;\n        });\n      }\n      \n      // Add filtering summary\n      result += `\\n🎯 **Filtres appliqués:**\\n`;\n      if (params.includeTags) result += `   ✅ Tags inclus: ${params.includeTags}\\n`;\n      if (params.excludeTags) result += `   ❌ Tags exclus: ${params.excludeTags}\\n`;\n      if (params.includeCities) result += `   ✅ Villes incluses: ${params.includeCities}\\n`;\n      if (params.excludeCities) result += `   ❌ Villes exclues: ${params.excludeCities}\\n`;\n      if (params.includeZones) result += `   ✅ Zones incluses: ${params.includeZones}\\n`;\n      if (params.excludeZones) result += `   ❌ Zones exclues: ${params.excludeZones}\\n`;\n      \n      return result;\n      \n    } catch (error: any) {\n      return `Erreur lors de la diffusion intelligente: ${error.message}`;\n    }\n  }\n};\n\nconst broadcastToZone: ToolDefinition = {\n  name: 'broadcast_to_zone',\n  description: 'Broadcast content to a specific geographic zone',\n  parameters: [\n    { name: 'mediaId', type: 'number', description: 'Media ID to broadcast', required: true },\n    { name: 'zone', type: 'string', description: 'Geographic zone (montreal_region, quebec_region, national)', required: true },\n    { name: 'exclude', type: 'boolean', description: 'Exclude this zone instead of including it', required: false, default: false },\n    { name: 'priority', type: 'string', description: 'Broadcast priority', required: false, default: 'normal', enum: ['low', 'normal', 'high', 'urgent'] }\n  ],\n  handler: async (params: any) => {\n    // This tool is a shortcut for broadcast_ad with zone filtering\n    const broadcastParams = {\n      ...params,\n      _xiboClient: params._xiboClient,\n      _config: params._config\n    };\n    \n    if (params.exclude) {\n      broadcastParams.excludeZones = params.zone;\n    } else {\n      broadcastParams.includeZones = params.zone;\n    }\n    \n    delete broadcastParams.zone;\n    delete broadcastParams.exclude;\n    \n    return await broadcastAd.handler(broadcastParams);\n  }\n};\n\nconst broadcastUrgent: ToolDefinition = {\n  name: 'broadcast_urgent',\n  description: 'Broadcast urgent content to all displays immediately',\n  parameters: [\n    { name: 'mediaId', type: 'number', description: 'Media ID to broadcast', required: true },\n    { name: 'message', type: 'string', description: 'Description of the urgent message', required: false }\n  ],\n  handler: async (params: any) => {\n    const broadcastParams = {\n      ...params,\n      _xiboClient: params._xiboClient,\n      _config: params._config,\n      priority: 'urgent',\n      duration: 300 // 5 minutes for urgent messages\n    };\n    \n    const result = await broadcastAd.handler(broadcastParams);\n    \n    return `🚨 **MESSAGE URGENT DIFFUSÉ!**\\n\\n${result}`;\n  }\n};\n\nexport const broadcastTools: ToolDefinition[] = [\n  broadcastAd,\n  broadcastToZone,\n  broadcastUrgent\n];
+    { name: 'priority', type: 'string', description: 'Broadcast priority', required: false, default: 'normal', enum: ['low', 'normal', 'high', 'urgent'] },
+    { name: 'duration', type: 'number', description: 'Duration in seconds (optional)', required: false },
+    { name: 'layoutId', type: 'number', description: 'Target layout ID (if not specified, creates new campaign)', required: false }
+  ],
+  handler: async (params: any) => {
+    const client: XiboClient = params._xiboClient;
+    const config = params._config;
+    
+    try {
+      // Step 1: Get all displays
+      const displayResponse = await client.get<Display[]>('/display');
+      const allDisplays = displayResponse.data;
+      
+      if (!allDisplays || allDisplays.length === 0) {
+        return 'Aucun écran disponible pour la diffusion.';
+      }
+
+      // Step 2: Apply intelligent filtering
+      let targetDisplays = allDisplays.filter(display => display.licensed && display.loggedIn);
+      
+      // Filter by specific display IDs
+      if (params.displayIds) {
+        const ids = params.displayIds.split(',').map((id: string) => parseInt(id.trim()));
+        targetDisplays = targetDisplays.filter(display => ids.includes(display.displayId));
+      } else {
+        // Apply tag filters
+        if (params.includeTags) {
+          const includeTags = params.includeTags.split(',').map((tag: string) => tag.trim().toLowerCase());
+          targetDisplays = targetDisplays.filter(display => 
+            display.tags && display.tags.some(tag => 
+              includeTags.includes(tag.toLowerCase())
+            )
+          );
+        }
+        
+        if (params.excludeTags) {
+          const excludeTags = params.excludeTags.split(',').map((tag: string) => tag.trim().toLowerCase());
+          targetDisplays = targetDisplays.filter(display => 
+            !display.tags || !display.tags.some(tag => 
+              excludeTags.includes(tag.toLowerCase())
+            )
+          );
+        }
+        
+        // Apply city filters
+        if (params.includeCities) {
+          const includeCities = params.includeCities.split(',').map((city: string) => city.trim().toLowerCase());
+          targetDisplays = targetDisplays.filter(display => 
+            display.city && includeCities.includes(display.city.toLowerCase())
+          );
+        }
+        
+        if (params.excludeCities) {
+          const excludeCities = params.excludeCities.split(',').map((city: string) => city.trim().toLowerCase());
+          targetDisplays = targetDisplays.filter(display => 
+            !display.city || !excludeCities.includes(display.city.toLowerCase())
+          );
+        }
+        
+        // Apply zone filters
+        if (params.includeZones) {
+          const includeZones = params.includeZones.split(',').map((zone: string) => zone.trim());
+          targetDisplays = targetDisplays.filter(display => {
+            if (!display.city) return false;
+            return includeZones.some(zoneName => {
+              const zone = config.geoZones?.[zoneName];
+              if (!zone) return false;
+              return zone.cities.includes('all') || 
+                     zone.cities.some((city: string) => city.toLowerCase() === display.city!.toLowerCase());
+            });
+          });
+        }
+        
+        if (params.excludeZones) {
+          const excludeZones = params.excludeZones.split(',').map((zone: string) => zone.trim());
+          targetDisplays = targetDisplays.filter(display => {
+            if (!display.city) return true;
+            return !excludeZones.some(zoneName => {
+              const zone = config.geoZones?.[zoneName];
+              if (!zone) return false;
+              return zone.cities.includes('all') || 
+                     zone.cities.some((city: string) => city.toLowerCase() === display.city!.toLowerCase());
+            });
+          });
+        }
+      }
+      
+      if (targetDisplays.length === 0) {
+        return 'Aucun écran ne correspond aux critères de filtrage spécifiés.';
+      }
+      
+      // Step 3: Create or use layout
+      let layoutId = params.layoutId;
+      if (!layoutId) {
+        // Create a simple layout with the media
+        const layoutResponse = await client.post('/layout', {
+          layout: `Broadcast_${Date.now()}`,
+          width: 1920,
+          height: 1080
+        });
+        layoutId = layoutResponse.data.layoutId;
+      }
+      
+      // Step 4: Create campaign
+      const campaignResponse = await client.post('/campaign', {
+        campaign: `Broadcast_Campaign_${Date.now()}`
+      });
+      const campaignId = campaignResponse.data.campaignId;
+      
+      // Step 5: Assign layout to campaign
+      await client.post(`/campaign/layout/assign/${campaignId}`, {
+        layoutId: layoutId,
+        displayOrder: 1
+      });
+      
+      // Step 6: Schedule to target displays
+      const scheduledDisplays: string[] = [];
+      const errors: string[] = [];
+      
+      for (const display of targetDisplays) {
+        try {
+          const scheduleData = {
+            eventTypeId: 1, // Layout event
+            campaignId: campaignId,
+            displayGroupId: display.displayGroupId,
+            fromDt: new Date().toISOString(),
+            toDt: new Date(Date.now() + (params.duration || 3600) * 1000).toISOString(), // 1 hour default
+            isPriority: params.priority === 'high' || params.priority === 'urgent' ? 1 : 0,
+            displayOrder: params.priority === 'urgent' ? 1 : 10
+          };
+          
+          await client.post('/schedule', scheduleData);
+          scheduledDisplays.push(`${display.display} (${display.city || 'N/A'})`);
+        } catch (error: any) {
+          errors.push(`${display.display}: ${error.message}`);
+        }
+      }
+      
+      // Step 7: Generate summary report
+      let result = `🚀 **Diffusion intelligente terminée!**\\n\\n`;
+      result += `📊 **Résumé:**\\n`;
+      result += `   Média: ${params.mediaId}\\n`;
+      result += `   Campagne: ${campaignId}\\n`;
+      result += `   Layout: ${layoutId}\\n`;
+      result += `   Priorité: ${params.priority || 'normal'}\\n\\n`;
+      
+      result += `✅ **Écrans ciblés avec succès (${scheduledDisplays.length}):**\\n`;
+      scheduledDisplays.forEach((display, index) => {
+        result += `   ${index + 1}. ${display}\\n`;
+      });
+      
+      if (errors.length > 0) {
+        result += `\\n❌ **Erreurs (${errors.length}):**\\n`;
+        errors.forEach((error, index) => {
+          result += `   ${index + 1}. ${error}\\n`;
+        });
+      }
+      
+      // Add filtering summary
+      result += `\\n🎯 **Filtres appliqués:**\\n`;
+      if (params.includeTags) result += `   ✅ Tags inclus: ${params.includeTags}\\n`;
+      if (params.excludeTags) result += `   ❌ Tags exclus: ${params.excludeTags}\\n`;
+      if (params.includeCities) result += `   ✅ Villes incluses: ${params.includeCities}\\n`;
+      if (params.excludeCities) result += `   ❌ Villes exclues: ${params.excludeCities}\\n`;
+      if (params.includeZones) result += `   ✅ Zones incluses: ${params.includeZones}\\n`;
+      if (params.excludeZones) result += `   ❌ Zones exclues: ${params.excludeZones}\\n`;
+      
+      return result;
+      
+    } catch (error: any) {
+      return `Erreur lors de la diffusion intelligente: ${error.message}`;
+    }
+  }
+};
+
+const broadcastToZone: ToolDefinition = {
+  name: 'broadcast_to_zone',
+  description: 'Broadcast content to a specific geographic zone',
+  parameters: [
+    { name: 'mediaId', type: 'number', description: 'Media ID to broadcast', required: true },
+    { name: 'zone', type: 'string', description: 'Geographic zone (montreal_region, quebec_region, national)', required: true },
+    { name: 'exclude', type: 'boolean', description: 'Exclude this zone instead of including it', required: false, default: false },
+    { name: 'priority', type: 'string', description: 'Broadcast priority', required: false, default: 'normal', enum: ['low', 'normal', 'high', 'urgent'] }
+  ],
+  handler: async (params: any) => {
+    // This tool is a shortcut for broadcast_ad with zone filtering
+    const broadcastParams = {
+      ...params,
+      _xiboClient: params._xiboClient,
+      _config: params._config
+    };
+    
+    if (params.exclude) {
+      broadcastParams.excludeZones = params.zone;
+    } else {
+      broadcastParams.includeZones = params.zone;
+    }
+    
+    delete broadcastParams.zone;
+    delete broadcastParams.exclude;
+    
+    return await broadcastAd.handler(broadcastParams);
+  }
+};
+
+const broadcastUrgent: ToolDefinition = {
+  name: 'broadcast_urgent',
+  description: 'Broadcast urgent content to all displays immediately',
+  parameters: [
+    { name: 'mediaId', type: 'number', description: 'Media ID to broadcast', required: true },
+    { name: 'message', type: 'string', description: 'Description of the urgent message', required: false }
+  ],
+  handler: async (params: any) => {
+    const broadcastParams = {
+      ...params,
+      _xiboClient: params._xiboClient,
+      _config: params._config,
+      priority: 'urgent',
+      duration: 300 // 5 minutes for urgent messages
+    };
+    
+    const result = await broadcastAd.handler(broadcastParams);
+    
+    return `🚨 **MESSAGE URGENT DIFFUSÉ!**\\n\\n${result}`;
+  }
+};
+
+export const broadcastTools: ToolDefinition[] = [
+  broadcastAd,
+  broadcastToZone,
+  broadcastUrgent
+];
