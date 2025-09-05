@@ -5,7 +5,6 @@
  */
 
 import { ToolDefinition } from '../types.js';
-import XiboClient from '../xibo-client.js';
 
 // ========== ACTION MANAGEMENT TOOLS ==========
 
@@ -114,7 +113,7 @@ const actionList: ToolDefinition = {
         ]
       };
 
-      let result = `🤖 **Actions d'automatisation disponibles**\\n\\n`;
+      let result = `🤖 **Actions d'automatisation disponibles**\n\n`;
       
       const filterCategory = params.category?.toLowerCase();
       let actionsToShow = automationActions;
@@ -134,26 +133,26 @@ const actionList: ToolDefinition = {
         };
         
         const emoji = categoryEmojis[category] || '🔧';
-        result += `${emoji} **${category.toUpperCase()} (${actions.length} actions)**\\n\\n`;
+        result += `${emoji} **${category.toUpperCase()} (${actions.length} actions)**\n\n`;
         
         actions.forEach((action: any) => {
-          result += `   **${action.displayName}** (\`${action.name}\`)\\n`;
-          result += `      📝 ${action.description}\\n`;
-          result += `      🔄 Déclencheurs: ${action.triggers.join(', ')}\\n`;
-          result += `      ⚙️ Paramètres: ${action.parameters.join(', ')}\\n\\n`;
+          result += `   **${action.displayName}** (\`${action.name}\`)\n`;
+          result += `      📝 ${action.description}\n`;
+          result += `      🔄 Déclencheurs: ${action.triggers.join(', ')}\n`;
+          result += `      ⚙️ Paramètres: ${action.parameters.join(', ')}\n\n`;
         });
         
         totalActions += actions.length;
       });
       
-      result += `📊 **Résumé: ${totalActions} actions disponibles**\\n\\n`;
+      result += `📊 **Résumé: ${totalActions} actions disponibles**\n\n`;
       
-      result += `🌍 **Optimisé pour votre région:**\\n`;
-      result += `   Les actions "seasonal_switch" et "weather_alert"\\n`;
-      result += `   sont optimisées pour les conditions locales\\n\\n`;
+      result += `🌍 **Optimisé pour votre région:**\n`;
+      result += `   Les actions "seasonal_switch" et "weather_alert"\n`;
+      result += `   sont optimisées pour les conditions locales\n\n`;
       
-      result += `💡 **Pour créer une action personnalisée:**\\n`;
-      result += `   Utilisez action_create avec les paramètres souhaités\\n`;
+      result += `💡 **Pour créer une action personnalisée:**\n`;
+      result += `   Utilisez action_create avec les paramètres souhaités\n`;
       
       return result;
     } catch (error: any) {
@@ -210,15 +209,15 @@ const actionCreate: ToolDefinition = {
       };
       
       // Since Xibo doesn't have a direct automation API, simulate creation
-      let result = `🤖 **Action d'automatisation créée**\\n\\n`;
-      result += `📋 **Configuration:**\\n`;
-      result += `   ID: ${actionConfig.id}\\n`;
-      result += `   Nom: ${actionConfig.displayName}\\n`;
-      result += `   Code: \`${actionConfig.name}\`\\n`;
-      result += `   Type: ${actionConfig.actionType}\\n`;
-      result += `   Statut: ${actionConfig.active ? '🟢 Active' : '⚪ Inactive'}\\n\\n`;
+      let result = `🤖 **Action d'automatisation créée**\n\n`;
+      result += `📋 **Configuration:**\n`;
+      result += `   ID: ${actionConfig.id}\n`;
+      result += `   Nom: ${actionConfig.displayName}\n`;
+      result += `   Code: \`${actionConfig.name}\`\n`;
+      result += `   Type: ${actionConfig.actionType}\n`;
+      result += `   Statut: ${actionConfig.active ? '🟢 Active' : '⚪ Inactive'}\n\n`;
       
-      result += `🔄 **Déclencheurs configurés (${triggers.length}):**\\n`;
+      result += `🔄 **Déclencheurs configurés (${triggers.length}):**\n`;
       triggers.forEach((trigger: string) => {
         const triggerDescriptions: Record<string, string> = {
           'time': 'Heure spécifique (ex: 09:00)',
@@ -231,10 +230,10 @@ const actionCreate: ToolDefinition = {
         };
         
         const description = triggerDescriptions[trigger] || trigger;
-        result += `   **${trigger}** - ${description}\\n`;
+        result += `   **${trigger}** - ${description}\n`;
       });
       
-      result += `\\n🎯 **Cible:** ${params.targetType}\\n\\n`;
+      result += `\n🎯 **Cible:** ${params.targetType}\n\n`;
       
       return result;
     } catch (error: any) {
