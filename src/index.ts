@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Xtranumerik MCP Server for Xibo Digital Signage
- * Professional Edition v2.0.0 - Complete OAuth2 API Integration
+ * Professional Edition v2.0.0 - Complete OAuth2 API Integration + Direct User Auth
  * @author Xtranumerik Inc.
  */
 
@@ -14,8 +14,10 @@ import {
   McpError,
   Tool
 } from '@modelcontextprotocol/sdk/types.js';
-import { getConfig } from './config/index.js';
+import { getConfig, isDirectUserMode } from './config/index.js';
 import XiboClient from './xibo-client.js';
+import { DirectUserAuth } from './auth/direct-auth.js';
+import { PermissionDetector } from './auth/permission-detector.js';
 
 // ========== CORE TOOLS (32 tools) ==========
 import { displayTools } from './tools/displays.js';
@@ -45,36 +47,52 @@ import { systemAdminTools } from './tools/system-admin.js';
 import { analyticsReportTools } from './tools/analytics-reports.js';
 import { oauth2SecurityTools } from './tools/oauth2-security.js';
 
-import { ToolDefinition } from './types.js';
+import { ToolDefinition, UserPermissionSet } from './types.js';
 
 // ASCII Art Logo - Enhanced
 const LOGO = `
-\u001b[36m __  ___                                           _ _    
- \\ \\/ / |_ _ __ __ _ _ __  _   _ _ __ ___   ___ _ __(_) | __
-  \\  /| __| '__/ _\` | '_ \\| | | | '_ \` _ \\ / _ \\ '__| | |/ /
-  /  \\| |_| | | (_| | | | | |_| | | | | | |  __/ |  | |   < 
- /_/\\_\\\\__|_|  \\__,_|_| |_|\\__,_|_| |_| |_|\\___|_|  |_|_|\\_\\
-\u001b[0m                                                            
-\u001b[32m            MCP Server for Xibo Digital Signage
+\\u001b[36m __  ___                                           _ _    
+ \\\\ \\\\/ / |_ _ __ __ _ _ __  _   _ _ __ ___   ___ _ __(_) | __
+  \\\\  /| __| '__/ _\` | '_ \\\\| | | | '_ \` _ \\\\ / _ \\\\ '__| | |/ /
+  /  \\\\| |_| | | (_| | | | | |_| | | | | | |  __/ |  | |   < 
+ /_/\\\\_\\\\\\\\__|_|  \\\\__,_|_| |_|\\\\__,_|_| |_| |_|\\\\___|_|  |_|_|\\\\_\\\\
+\\u001b[0m                                                            
+\\u001b[32m            MCP Server for Xibo Digital Signage
             Professional Edition v2.0.0 by Xtranumerik Inc.
-            Complete OAuth2 API Integration - 170+ Tools Available\u001b[0m
+            Complete OAuth2 + Direct User Authentication - 170+ Tools Available\\u001b[0m
 `;
 
 class XiboMCPServer {
   private server: Server;
   private xiboClient: XiboClient;
+  private directAuth: DirectUserAuth | null = null;
+  private permissionDetector: PermissionDetector | null = null;
   private config: any;
-  private tools: Map<string, ToolDefinition> = new Map();
+  private allTools: Map<string, ToolDefinition> = new Map();
+  private availableTools: Map<string, ToolDefinition> = new Map();
+  private userPermissions: UserPermissionSet | null = null;
 
   constructor() {
     // Load configuration
     this.config = getConfig();
+    
+    // Initialize authentication based on mode
+    if (isDirectUserMode()) {
+      this.directAuth = new DirectUserAuth(
+        this.config.apiUrl,
+        this.config.username!,
+        this.config.password!
+      );
+    }
     
     // Initialize Xibo client with comprehensive OAuth2 support
     this.xiboClient = new XiboClient({
       apiUrl: this.config.apiUrl,
       clientId: this.config.clientId,
       clientSecret: this.config.clientSecret,
+      username: this.config.username,
+      password: this.config.password,
+      authMode: this.config.authMode,
       grantType: this.config.grantType
     });
 
@@ -91,12 +109,12 @@ class XiboMCPServer {
       }
     );
 
-    this.setupTools();
+    this.loadAllTools();
     this.setupHandlers();
   }
 
-  private setupTools(): void {
-    console.log('🛠️  Loading MCP tools...');
+  private loadAllTools(): void {
+    console.log('🛠️  Loading all MCP tools...');
 
     // Core tool categories (32 original tools)
     const coreToolCategories = [
@@ -132,103 +150,131 @@ class XiboMCPServer {
       { name: 'OAuth2 & Security', tools: oauth2SecurityTools, count: oauth2SecurityTools.length, description: 'Gestion OAuth2 et sécurité avancée', icon: '🔐', oauth: true, professional: true }
     ];
 
-    let coreToolsCount = 0;
-    let advancedToolsCount = 0;
-    let professionalToolsCount = 0;
-
-    // Load core tools
-    coreToolCategories.forEach(category => {
+    // Load all tools into the complete collection
+    [...coreToolCategories, ...advancedToolCategories, ...professionalToolCategories].forEach(category => {
       category.tools.forEach(tool => {
-        this.tools.set(tool.name, tool);
-        coreToolsCount++;
+        this.allTools.set(tool.name, tool);
       });
     });
 
-    // Load advanced tools
-    advancedToolCategories.forEach(category => {
-      category.tools.forEach(tool => {
-        this.tools.set(tool.name, tool);
-        advancedToolsCount++;
-      });
+    console.log(`✅ Loaded ${this.allTools.size} total tools for dynamic filtering`);
+  }
+
+  private async initializeAuthentication(): Promise<void> {
+    console.log('🔐 Initializing authentication...');
+
+    if (isDirectUserMode() && this.directAuth) {
+      console.log('🔑 Using Direct User Authentication mode');
+      
+      const authResult = await this.directAuth.authenticate();
+      if (authResult.success) {
+        console.log(`✅ Direct authentication successful for user: ${authResult.username}`);
+        
+        // Get user permissions from direct auth
+        this.userPermissions = this.directAuth.getUserPermissions();
+        
+        if (!this.userPermissions) {
+          console.log('⚠️  No specific permissions detected, using default viewer permissions');
+          this.userPermissions = PermissionDetector.createViewerPermissions();
+        }
+      } else {
+        console.error('❌ Direct authentication failed:', authResult.error);
+        
+        // Fallback to basic viewer permissions
+        console.log('🔄 Falling back to viewer-only permissions');
+        this.userPermissions = PermissionDetector.createViewerPermissions();
+      }
+    } else {
+      console.log('🔑 Using Client Credentials mode');
+      
+      // For client credentials, try to detect permissions from API
+      try {
+        const isConnected = await this.xiboClient.testConnection();
+        if (isConnected) {
+          // Try to determine permissions based on what endpoints we can access
+          this.userPermissions = await this.detectClientCredentialPermissions();
+        }
+      } catch (error) {
+        console.log('⚠️  Could not detect permissions, using default editor permissions');
+        this.userPermissions = PermissionDetector.createEditorPermissions();
+      }
+    }
+
+    // Initialize permission detector
+    this.permissionDetector = new PermissionDetector(this.userPermissions!);
+    
+    // Filter available tools based on permissions
+    this.filterAvailableTools();
+
+    // Show permission summary
+    const summary = this.permissionDetector.getPermissionSummary();
+    console.log(`👤 User Permission Level: ${summary.level}`);
+    console.log(`🔧 Available Tools: ${summary.availableTools}/${summary.totalTools}`);
+    console.log(`📊 Available Categories: ${summary.categories.length}`);
+    
+    if (summary.restrictions.length > 0) {
+      console.log(`🚫 Restrictions: ${summary.restrictions.join(', ')}`);
+    }
+  }
+
+  private async detectClientCredentialPermissions(): Promise<UserPermissionSet> {
+    // Try to access various endpoints to determine permission level
+    const permissions = PermissionDetector.createEditorPermissions();
+
+    try {
+      // Test user management access
+      await this.xiboClient.request('GET', '/user');
+      permissions.canManageUsers = true;
+      permissions.level = 'admin';
+      console.log('✅ User management access detected');
+    } catch (error) {
+      console.log('ℹ️  No user management access');
+    }
+
+    try {
+      // Test system settings access
+      await this.xiboClient.request('GET', '/settings');
+      permissions.canManageSystem = true;
+      permissions.level = 'super_admin';
+      console.log('✅ System administration access detected');
+    } catch (error) {
+      console.log('ℹ️  No system administration access');
+    }
+
+    try {
+      // Test reports access
+      await this.xiboClient.request('GET', '/report');
+      permissions.canViewReports = true;
+      console.log('✅ Reports access detected');
+    } catch (error) {
+      console.log('ℹ️  No reports access');
+    }
+
+    return permissions;
+  }
+
+  private filterAvailableTools(): void {
+    if (!this.permissionDetector) return;
+
+    this.availableTools.clear();
+    
+    // Filter tools based on user permissions
+    const availableToolNames = this.permissionDetector.getAvailableTools();
+    
+    availableToolNames.forEach(toolName => {
+      const tool = this.allTools.get(toolName);
+      if (tool) {
+        this.availableTools.set(toolName, tool);
+      }
     });
 
-    // Load professional OAuth2 tools
-    professionalToolCategories.forEach(category => {
-      category.tools.forEach(tool => {
-        this.tools.set(tool.name, tool);
-        professionalToolsCount++;
-      });
-    });
-
-    const totalTools = coreToolsCount + advancedToolsCount + professionalToolsCount;
-    const totalCategories = coreToolCategories.length + advancedToolCategories.length + professionalToolCategories.length;
-
-    console.log(`✅ Loaded ${totalTools} tools across ${totalCategories} categories`);
-    console.log(`   📊 Core Tools: ${coreToolsCount} (Client Credentials)`);
-    console.log(`   🚀 Advanced Tools: ${advancedToolsCount} (OAuth2 User Auth)`);
-    console.log(`   💎 Professional Tools: ${professionalToolsCount} (OAuth2 Full API)`);
-    
-    console.log('\n📋 Core Tool Categories:');
-    coreToolCategories.forEach(category => {
-      console.log(`   ${category.icon} ${category.name}: ${category.count} tools - ${category.description}`);
-    });
-    
-    console.log('\n🚀 Advanced Tool Categories (OAuth2):');
-    advancedToolCategories.forEach(category => {
-      console.log(`   ${category.icon} ${category.name}: ${category.count} tools - ${category.description}`);
-    });
-
-    console.log('\n💎 Professional Tool Categories (OAuth2 Full API):');
-    professionalToolCategories.forEach(category => {
-      console.log(`   ${category.icon} ${category.name}: ${category.count} tools - ${category.description}`);
-    });
-    
-    console.log('\n🎯 Complete OAuth2 API Coverage:');
-    console.log('   ✅ User Management (CRUD + Permissions)');
-    console.log('   ✅ OAuth2 Applications (Create, Edit, Delete, Tokens)');
-    console.log('   ✅ System Administration (Settings, Maintenance, Logs, Tasks)');
-    console.log('   ✅ Security Controls (IP Blocking, Rate Limiting, Audit)');
-    console.log('   ✅ Analytics & Reports (Generate, Schedule, Export)');
-    console.log('   ✅ Performance Monitoring (System, Display, Bandwidth)');
-    console.log('   ✅ Backup & Restore (Create, List, Restore, Download)');
-    console.log('   ✅ File Management (Upload, Download, All formats)');
-    console.log('   ✅ Webhook Management (Create, Test, Monitor)');
-    console.log('   ✅ Global Search & Export/Import (JSON, CSV, Excel, PDF)');
-    console.log('   ✅ Health Checks & API Documentation Access');
-    console.log('   ✅ Session Management & User Activity Monitoring');
-    
-    console.log('\n🔐 Authentication & Security Features:');
-    console.log('   🔹 Dual Authentication (Client Credentials + OAuth2 User)');
-    console.log('   🔹 Token Lifecycle Management (Generate, Refresh, Revoke)');
-    console.log('   🔹 Application Scope Control & Permission Management');
-    console.log('   🔹 Advanced Security Controls (IP Blocking, Rate Limiting)');
-    console.log('   🔹 Comprehensive Audit Logging (Access, Failed Logins, Activities)');
-    console.log('   🔹 Session Monitoring & Management');
-    console.log('   🔹 Security Settings & Password Policy Management');
-    
-    console.log('\n📊 Professional Capabilities:');
-    console.log('   🔹 Complete CRUD operations on all entities');
-    console.log('   🔹 Advanced filtering, search, and bulk operations');
-    console.log('   🔹 Real-time monitoring and alerting systems');
-    console.log('   🔹 Professional reporting with custom scheduling');
-    console.log('   🔹 Multi-format export/import capabilities');
-    console.log('   🔹 Automated workflows and trigger systems');
-    console.log('   🔹 Geographic targeting and intelligent filtering');
-    console.log('   🔹 Enterprise-grade security and compliance');
-    
-    console.log('\n🌍 Specialized Quebec/Montreal Features:');
-    console.log('   🍁 Intelligent geographic filtering (Quebec, Montreal, National)');
-    console.log('   🌡️ Environment Canada weather integration');
-    console.log('   🕐 EST/EDT timezone management');
-    console.log('   🍽️ Professional restaurant menu boards');
-    console.log('   🚨 Emergency alerts with geo-targeting');
-    console.log('   📅 Seasonal content scheduling');
+    console.log(`🔧 Filtered tools: ${this.availableTools.size} tools available for current user`);
   }
 
   private setupHandlers(): void {
-    // List available tools
+    // List available tools (filtered by permissions)
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
-      const tools: Tool[] = Array.from(this.tools.values()).map(tool => ({
+      const tools: Tool[] = Array.from(this.availableTools.values()).map(tool => ({
         name: tool.name,
         description: tool.description,
         inputSchema: (tool as any).parameters || {
@@ -244,20 +290,33 @@ class XiboMCPServer {
     // Handle tool calls
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
-      const tool = this.tools.get(name);
+      
+      // Check if tool is available for current user
+      const tool = this.availableTools.get(name);
 
       if (!tool) {
-        throw new McpError(
-          ErrorCode.MethodNotFound,
-          `Tool "${name}" not found`
-        );
+        // Check if tool exists but is not available due to permissions
+        const fullTool = this.allTools.get(name);
+        if (fullTool) {
+          throw new McpError(
+            ErrorCode.MethodNotFound,
+            `Tool "${name}" requires higher permissions. Current level: ${this.userPermissions?.level || 'unknown'}`
+          );
+        } else {
+          throw new McpError(
+            ErrorCode.MethodNotFound,
+            `Tool "${name}" not found`
+          );
+        }
       }
 
       try {
-        // Pass enhanced Xibo client and config to tool handler
+        // Pass enhanced clients and config to tool handler
         const result = await tool.handler({ 
           ...args, 
           _xiboClient: this.xiboClient, 
+          _directAuth: this.directAuth,
+          _permissions: this.userPermissions,
           _config: this.config 
         });
         
@@ -285,6 +344,9 @@ class XiboMCPServer {
     console.log('='.repeat(75));
     
     try {
+      // Initialize authentication and permissions
+      await this.initializeAuthentication();
+
       // Test Xibo connection
       console.log('🔍 Testing connection to Xibo CMS...');
       const isConnected = await this.xiboClient.testConnection();
@@ -303,19 +365,14 @@ class XiboMCPServer {
         console.log('ℹ️  Connected to Xibo CMS (version info unavailable)');
       }
 
-      // Check authentication mode and capabilities
-      const authMode = this.xiboClient.getAuthMode();
-      const authStatus = this.xiboClient.getAuthStatus();
+      // Show authentication details
+      const authMode = this.config.authMode;
+      console.log(`🔐 Authentication Mode: ${authMode === 'direct_user' ? 'Direct User' : 'Client Credentials'}`);
       
-      console.log(`🔐 Authentication: ${authMode === 'user_tokens' ? 'OAuth2 User (Complete API Access)' : 'Client Credentials (Core Features)'}`);
-      
-      if (authMode === 'user_tokens' && authStatus.userInfo) {
-        console.log(`👤 Authenticated as: ${authStatus.userInfo.username}`);
-        if (authStatus.tokenStats) {
-          console.log(`🔑 Token expires: ${new Date(authStatus.tokenStats.expiresAt).toLocaleString()}`);
-        }
-      } else if (authMode === 'client_credentials') {
-        console.log('💡 Run "npm run auth-user" for complete OAuth2 API access');
+      if (this.directAuth && this.directAuth.isSessionValid()) {
+        const session = this.directAuth.getSession();
+        console.log(`👤 Authenticated as: ${session?.username}`);
+        console.log(`🔑 Session expires: ${new Date(session?.expires_at || 0).toLocaleString()}`);
       }
 
       // Start the server
@@ -327,43 +384,53 @@ class XiboMCPServer {
       console.log(`   🏢 Company: ${this.config.companyName}`);
       console.log(`   🖥️  Server: Xibo MCP Professional v2.0.0`);
       console.log(`   🌐 Xibo API: ${this.config.apiUrl}`);
-      console.log(`   🛠️  Tools Available: ${this.tools.size}/170+`);
-      console.log(`   🔐 Auth Mode: ${authMode === 'user_tokens' ? 'Complete OAuth2 Access' : 'Client Credentials'}`);
+      console.log(`   🛠️  Tools Available: ${this.availableTools.size}/${this.allTools.size}`);
+      console.log(`   🔐 Auth Mode: ${authMode === 'direct_user' ? 'Direct User Authentication' : 'Client Credentials'}`);
+      console.log(`   👤 Permission Level: ${this.userPermissions?.level || 'unknown'}`);
       
-      // Show available features based on auth mode
-      if (authMode === 'user_tokens') {
-        console.log('\n💎 Professional Features Active (170+ Tools):');
-        console.log('   ✅ Complete user and permission management');
-        console.log('   ✅ Full system administration and maintenance');
-        console.log('   ✅ OAuth2 application lifecycle management');
-        console.log('   ✅ Enterprise security controls and audit');
-        console.log('   ✅ Professional analytics and custom reports');
-        console.log('   ✅ Automated backup and restore operations');
-        console.log('   ✅ Real-time performance monitoring');
-        console.log('   ✅ Advanced webhook and integration management');
-        console.log('   ✅ Multi-format import/export capabilities');
-        console.log('   ✅ Session management and activity monitoring');
-      } else {
-        console.log('\n📊 Core Features Active (32 Tools):');
-        console.log('   ✅ Display and layout management');
-        console.log('   ✅ Content and media management');
-        console.log('   ✅ Basic scheduling and campaigns');
-        console.log('   ✅ Geographic broadcasting and filtering');
-        console.log('   ✅ Menu boards and notifications');
+      // Show available features based on permission level
+      if (this.permissionDetector) {
+        const summary = this.permissionDetector.getPermissionSummary();
+        const toolCounts = this.permissionDetector.getToolCountByCategory();
+        
+        console.log('\n💎 Available Features:');
+        Object.entries(toolCounts).forEach(([category, count]) => {
+          console.log(`   ✅ ${category}: ${count} tools`);
+        });
+
+        if (this.permissionDetector.isBasicToolsOnly()) {
+          console.log('\n💡 To unlock more tools:');
+          console.log('   • Use OAuth2 authentication for advanced features');
+          console.log('   • Request higher permissions from your Xibo administrator');
+          console.log('   • Upgrade to a user account with more privileges');
+        }
       }
       
       console.log('\n💬 Ready to receive commands from Claude!');
-      console.log('\n💡 Professional Command Examples:');
-      console.log('   👥 "Créer un utilisateur admin avec permissions limitées à Montréal"');
-      console.log('   🔐 "Liste toutes les applications OAuth2 et leurs tokens actifs"');
-      console.log('   📊 "Génère un rapport complet de performance pour la dernière semaine"');
-      console.log('   🔧 "Mets le système en maintenance avec un message personnalisé"');
-      console.log('   💾 "Crée une sauvegarde complète incluant tous les médias"');
-      console.log('   📈 "Montre les métriques de performance des écrans de Québec"');
-      console.log('   🚨 "Configure une alerte si un écran est hors ligne plus de 5 minutes"');
-      console.log('   🔍 "Affiche l\'audit de sécurité des dernières 24 heures"');
-      console.log('   🚫 "Bloque l\'IP 192.168.1.100 pour tentatives de connexion suspectes"');
-      console.log('   📝 "Planifie un rapport mensuel d\'utilisation à envoyer par email"');
+      console.log('\n💡 Command Examples (based on your permissions):');
+      
+      if (this.userPermissions?.level === 'super_admin') {
+        console.log('   👥 "Créer un utilisateur admin avec permissions limitées à Montréal"');
+        console.log('   🔐 "Liste toutes les applications OAuth2 et leurs tokens actifs"');
+        console.log('   📊 "Génère un rapport complet de performance pour la dernière semaine"');
+        console.log('   🔧 "Mets le système en maintenance avec un message personnalisé"');
+        console.log('   💾 "Crée une sauvegarde complète incluant tous les médias"');
+      } else if (this.userPermissions?.level === 'admin') {
+        console.log('   👥 "Liste tous les utilisateurs et leurs dernières connexions"');
+        console.log('   📊 "Génère des statistiques d\'utilisation des écrans"');
+        console.log('   🚨 "Crée une alerte d\'urgence pour la région de Montréal"');
+        console.log('   📈 "Affiche les rapports de performance des campagnes"');
+      } else if (this.userPermissions?.level === 'editor') {
+        console.log('   📺 "Affiche l\'état de tous mes écrans"');
+        console.log('   📄 "Crée une nouvelle mise en page pour les promotions"');
+        console.log('   🎬 "Upload et assigne ce média à la campagne été"');
+        console.log('   📅 "Programme cette campagne pour le weekend"');
+      } else {
+        console.log('   📺 "Affiche la liste des écrans disponibles"');
+        console.log('   📄 "Montre les mises en page existantes"');
+        console.log('   🎬 "Liste les médias dans la bibliothèque"');
+        console.log('   📊 "Affiche les campagnes actives"');
+      }
       
       console.log('\n🌍 Fonctionnalités géographiques et culturelles:');
       console.log('   🇨🇦 Filtrage intelligent par région (Québec, Montréal, National)');
@@ -372,23 +439,6 @@ class XiboMCPServer {
       console.log('   🍁 Contenu saisonnier adapté aux saisons québécoises');
       console.log('   🍽️  Menus de restaurants dynamiques avec prix en CAD');
       console.log('   🚨 Alertes d\'urgence géo-ciblées pour situations critiques');
-      
-      console.log('\n🔐 Sécurité et conformité entreprise:');
-      console.log('   • Contrôle d\'accès basé sur les rôles (RBAC)');
-      console.log('   • Audit complet des actions utilisateurs');
-      console.log('   • Limitation de débit configurable par utilisateur/IP');
-      console.log('   • Chiffrement des sauvegardes et données sensibles');
-      console.log('   • Conformité RGPD et lois sur la protection des données');
-      console.log('   • Gestion des sessions et détection d\'intrusions');
-      console.log('   • Intégration avec systèmes de sécurité existants');
-      
-      console.log('\n🚀 Performance et fiabilité:');
-      console.log('   • Monitoring en temps réel des performances système');
-      console.log('   • Alertes automatiques en cas de problèmes critiques');
-      console.log('   • Sauvegarde automatique et restauration rapide');
-      console.log('   • Optimisation intelligente de la bande passante');
-      console.log('   • Haute disponibilité et tolérance aux pannes');
-      console.log('   • Support technique professionnel 24/7');
       
       console.log('\n' + '='.repeat(75));
       
