@@ -160,7 +160,7 @@ export class XiboClient {
           authData.append('client_id', this.config.clientId);
           authData.append('client_secret', this.config.clientSecret);
 
-          if (this.refreshToken && this.config.grantType === 'access_code') {
+          if (this.refreshToken && this.config.grantType === 'authorization_code') {
             authData.append('refresh_token', this.refreshToken);
             authData.append('grant_type', 'refresh_token');
           }

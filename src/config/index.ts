@@ -49,8 +49,8 @@ export function loadConfig(): XiboMCPConfig {
   const geoZones = parseJsonConfig<Record<string, any>>(
     process.env.GEO_ZONES,
     {
-      quebec_region: { name: 'Quebec Region', cities: ['Quebec City', 'Levis', 'Beauport'] },
-      montreal_region: { name: 'Montreal Region', cities: ['Montreal', 'Laval', 'Longueuil'] },
+      region_1: { name: 'Region 1', cities: ['City A', 'City B', 'City C'] },
+      region_2: { name: 'Region 2', cities: ['City D', 'City E', 'City F'] },
       national: { name: 'National', cities: ['all'] }
     }
   );
@@ -94,7 +94,7 @@ export function loadConfig(): XiboMCPConfig {
     apiUrl: process.env.XIBO_API_URL!,
     clientId: process.env.XIBO_CLIENT_ID!,
     clientSecret: process.env.XIBO_CLIENT_SECRET!,
-    grantType: (process.env.XIBO_GRANT_TYPE as 'client_credentials' | 'access_code') || 'client_credentials',
+    grantType: (process.env.XIBO_GRANT_TYPE as 'client_credentials' | 'authorization_code') || 'client_credentials',
 
     // MCP Server Configuration
     serverName: process.env.MCP_SERVER_NAME || 'xibo-mcp',
