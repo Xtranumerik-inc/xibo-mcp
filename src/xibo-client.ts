@@ -324,61 +324,114 @@ export class XiboClient {
   }
 
   /**
-   * Test different authentication methods
+   * Test different authentication methods based on Xibo documentation
    */
   async debugAuthentication(): Promise<void> {
-    console.log('\n🔍 Debug Authentication Process');
-    console.log('================================');
+    console.log('\n🔍 Debug Authentication Process (Based on Xibo Docs)');
+    console.log('=====================================================');
     
-    const methods = [
-      { grant_type: 'client_credentials', description: 'Client Credentials' },
-      { grant_type: 'password', description: 'Resource Owner Password' }
+    const authMethods = [
+      {
+        name: 'Form-encoded with client credentials in body',
+        method: 'form-body',
+        grant_type: 'client_credentials'
+      },
+      {
+        name: 'HTTP Basic Auth with client credentials',
+        method: 'basic-auth',
+        grant_type: 'client_credentials'
+      },
+      {
+        name: 'Form-encoded with authorization header',
+        method: 'form-header',
+        grant_type: 'client_credentials'
+      }
     ];
 
     const endpoints = [
       '/api/authorize/access_token',
-      '/api/oauth/token', 
-      '/api/auth/access_token',
-      '/oauth/token'
+      '/api/oauth/access_token',
+      '/api/oauth/token',
+      '/authorize/access_token'
     ];
 
-    for (const method of methods) {
-      console.log(`\n📋 Testing ${method.description} (${method.grant_type})`);
+    for (const authMethod of authMethods) {
+      console.log(`\n📋 Testing: ${authMethod.name}`);
       
       for (const endpoint of endpoints) {
         try {
-          const authData = new URLSearchParams();
-          authData.append('grant_type', method.grant_type);
-          authData.append('client_id', this.config.clientId);
-          authData.append('client_secret', this.config.clientSecret);
+          let requestConfig: any = {
+            timeout: 10000,
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'Xibo-MCP/1.0'
+            }
+          };
 
-          console.log(`   🔗 ${endpoint}...`);
+          let requestData: any;
+
+          // Configure authentication method based on Xibo documentation
+          switch (authMethod.method) {
+            case 'form-body':
+              // Standard form-encoded with credentials in body
+              requestData = new URLSearchParams();
+              requestData.append('grant_type', authMethod.grant_type);
+              requestData.append('client_id', this.config.clientId);
+              requestData.append('client_secret', this.config.clientSecret);
+              requestConfig.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+              break;
+
+            case 'basic-auth':
+              // HTTP Basic Auth (for confidential clients)
+              requestData = new URLSearchParams();
+              requestData.append('grant_type', authMethod.grant_type);
+              requestConfig.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+              requestConfig.auth = {
+                username: this.config.clientId,
+                password: this.config.clientSecret
+              };
+              break;
+
+            case 'form-header':
+              // Form-encoded with authorization header
+              requestData = new URLSearchParams();
+              requestData.append('grant_type', authMethod.grant_type);
+              requestConfig.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+              const credentials = Buffer.from(`${this.config.clientId}:${this.config.clientSecret}`).toString('base64');
+              requestConfig.headers['Authorization'] = `Basic ${credentials}`;
+              break;
+          }
+
+          console.log(`   🔗 ${endpoint} (${authMethod.method})...`);
           
           const response = await axios.post(
             `${this.config.apiUrl}${endpoint}`,
-            authData,
-            {
-              headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Accept': 'application/json'
-              },
-              timeout: 8000
-            }
+            requestData,
+            requestConfig
           );
           
           console.log(`   ✅ SUCCESS! Status: ${response.status}`);
-          console.log(`   📄 Response: ${JSON.stringify(response.data, null, 2)}`);
-          return;
+          console.log(`   📄 Access Token: ${response.data.access_token?.substring(0, 30)}...`);
+          console.log(`   ⏰ Expires in: ${response.data.expires_in} seconds`);
+          console.log(`   🎯 Working method: ${authMethod.name} on ${endpoint}`);
+          return response.data;
           
         } catch (error: any) {
           const status = error.response?.status || 'NO_RESPONSE';
           const errorData = error.response?.data || error.message;
-          console.log(`   ❌ FAILED (${status}): ${JSON.stringify(errorData, null, 2)}`);
+          const errorMsg = typeof errorData === 'object' ? JSON.stringify(errorData) : errorData;
+          console.log(`   ❌ FAILED (${status}): ${errorMsg}`);
         }
       }
     }
     
     console.log('\n❌ All authentication methods failed');
+    console.log('\n🔧 Possible Solutions:');
+    console.log('   1. Check if application is configured as "Confidential Client" in Xibo CMS');
+    console.log('   2. Verify the "Client Credentials" grant type is enabled for your application');
+    console.log('   3. Ensure the client ID and secret are correctly copied from Xibo Applications page');
+    console.log('   4. Check if the Xibo server version supports the expected OAuth endpoints');
+    console.log('   5. Verify there are no network/firewall issues preventing authentication');
   }
 
   /**
