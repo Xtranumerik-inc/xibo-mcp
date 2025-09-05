@@ -18,10 +18,10 @@ const __dirname = path.dirname(__filename);
 
 const LOGO = `
 ${chalk.cyan('__  ___                                           _ _    ')}
-${chalk.cyan('\\ \\/ / |_ _ __ __ _ _ __  _   _ _ __ ___   ___ _ __(_) | __')}
-${chalk.cyan(' \\  /| __| \'__/ _` | \'_ \\| | | | \'_ ` _ \\ / _ \\ \'__| | |/ /')}
-${chalk.cyan(' /  \\| |_| | | (_| | | | | |_| | | | | | |  __/ |  | |   < ')}
-${chalk.cyan('/_/\\_\\\\__|_|  \\__,_|_| |_|\\__,_|_| |_| |_|\\___|_|  |_|_|\\_\\')}
+${chalk.cyan('\\\\ \\\\/ / |_ _ __ __ _ _ __  _   _ _ __ ___   ___ _ __(_) | __')}
+${chalk.cyan(' \\\\  /| __| \'__/ _` | \'_ \\\\| | | | \'_ ` _ \\\\ / _ \\\\ \'__| | |/ /')}
+${chalk.cyan(' /  \\\\| |_| | | (_| | | | | |_| | | | | | |  __/ |  | |   < ')}
+${chalk.cyan('/_/\\\\_\\\\\\\\__|_|  \\\\__,_|_| |_|\\\\__,_|_| |_| |_|\\\\___|_|  |_|_|\\\\_\\\\')}
 
 ${chalk.green('        Authentification utilisateur OAuth2 Xibo')}
 ${chalk.green('              Par Xtranumerik Inc.')}
@@ -30,20 +30,21 @@ ${chalk.green('              Par Xtranumerik Inc.')}
 class XiboUserAuth {
   constructor() {
     this.configPath = path.join(__dirname, '..', '.env');
-    this.tokenPath = path.join(__dirname, '..', '.user-tokens');
+    this.tokenDir = path.join(__dirname, '..', 'data', 'tokens');
     this.config = this.loadConfig();
   }
 
   loadConfig() {
+    // Si .env n'existe pas, retourner config vide (on va la créer)
     if (!fs.existsSync(this.configPath)) {
-      console.error(chalk.red('❌ Fichier .env non trouvé. Exécutez d\'abord npm run setup'));
-      process.exit(1);
+      console.log(chalk.yellow('⚠️  Fichier .env non trouvé, création en cours...'));
+      return {};
     }
 
     const config = {};
     const envContent = fs.readFileSync(this.configPath, 'utf-8');
     
-    envContent.split('\n').forEach(line => {
+    envContent.split('\\n').forEach(line => {
       const [key, ...valueParts] = line.split('=');
       if (key && valueParts.length > 0) {
         config[key.trim()] = valueParts.join('=').trim().replace(/^['"]|['"]$/g, '');
@@ -53,13 +54,91 @@ class XiboUserAuth {
     return config;
   }
 
-  encryptToken(token) {
+  async promptClientCredentials() {
+    if (this.config.XIBO_CLIENT_ID && this.config.XIBO_CLIENT_SECRET && this.config.XIBO_API_URL) {
+      console.log(chalk.green('✅ Configuration Client ID/Secret trouvée dans .env'));
+      return {
+        clientId: this.config.XIBO_CLIENT_ID,
+        clientSecret: this.config.XIBO_CLIENT_SECRET,
+        apiUrl: this.config.XIBO_API_URL
+      };
+    }
+
+    console.log(chalk.yellow('🔧 Configuration Client ID/Secret requise pour OAuth2\\n'));
+    
+    const questions = [
+      {
+        type: 'input',
+        name: 'apiUrl',
+        message: 'URL de votre Xibo CMS:',
+        default: this.config.XIBO_API_URL || 'https://acces.xtranumerik.com',
+        validate: (input) => {
+          try {
+            new URL(input);
+            return true;
+          } catch {
+            return 'Veuillez entrer une URL valide';
+          }
+        }
+      },
+      {
+        type: 'input',
+        name: 'clientId',
+        message: 'Client ID (depuis Applications dans Xibo):',
+        default: this.config.XIBO_CLIENT_ID,
+        validate: (input) => input.length > 0 || 'Le Client ID est requis'
+      },
+      {
+        type: 'password',
+        name: 'clientSecret', 
+        message: 'Client Secret:',
+        mask: '*',
+        default: this.config.XIBO_CLIENT_SECRET,
+        validate: (input) => input.length > 0 || 'Le Client Secret est requis'
+      }
+    ];
+
+    return inquirer.prompt(questions);
+  }
+
+  createEnvFile(config, credentials) {
+    const envContent = `# Xtranumerik MCP pour Xibo - Configuration OAuth2
+# Généré automatiquement par auth-user.js
+
+# Configuration de base
+XIBO_API_URL=${credentials.apiUrl}
+XIBO_CLIENT_ID=${credentials.clientId}
+XIBO_CLIENT_SECRET=${credentials.clientSecret}
+XIBO_GRANT_TYPE=password
+
+# Informations société
+COMPANY_NAME=Xtranumerik Inc.
+TIMEZONE=America/Montreal
+
+# Filtrage géographique Québec
+QUEBEC_FILTER_ENABLED=true
+MONTREAL_FILTER_ENABLED=true
+
+# OAuth2 User Authentication activé
+OAUTH2_USER_AUTH=true
+OAUTH2_TOKEN_DIR=data/tokens
+
+# Logging
+LOG_LEVEL=info
+LOG_FILE=logs/xibo-mcp.log
+`;
+
+    fs.writeFileSync(this.configPath, envContent);
+    console.log(chalk.green('✅ Fichier .env créé avec la configuration OAuth2'));
+  }
+
+  encryptToken(token, clientSecret) {
     const algorithm = 'aes-256-gcm';
-    const key = crypto.scryptSync(this.config.XIBO_CLIENT_SECRET || 'default-key', 'salt', 32);
+    const key = crypto.scryptSync(clientSecret || 'default-key', 'salt', 32);
     const iv = crypto.randomBytes(16);
     
-    const cipher = crypto.createCipher(algorithm, key);
-    cipher.setAAD(Buffer.from('xibo-mcp-token'));
+    const cipher = crypto.createCipherGCM(algorithm, key, iv);
+    cipher.setAADParams(Buffer.from('xibo-mcp-token'));
     
     let encrypted = cipher.update(token, 'utf8', 'hex');
     encrypted += cipher.final('hex');
@@ -73,13 +152,14 @@ class XiboUserAuth {
     };
   }
 
-  decryptToken(encryptedData) {
+  decryptToken(encryptedData, clientSecret) {
     try {
       const algorithm = 'aes-256-gcm';
-      const key = crypto.scryptSync(this.config.XIBO_CLIENT_SECRET || 'default-key', 'salt', 32);
+      const key = crypto.scryptSync(clientSecret || 'default-key', 'salt', 32);
+      const iv = Buffer.from(encryptedData.iv, 'hex');
       
-      const decipher = crypto.createDecipher(algorithm, key);
-      decipher.setAAD(Buffer.from('xibo-mcp-token'));
+      const decipher = crypto.createDecipherGCM(algorithm, key, iv);
+      decipher.setAADParams(Buffer.from('xibo-mcp-token'));
       decipher.setAuthTag(Buffer.from(encryptedData.authTag, 'hex'));
       
       let decrypted = decipher.update(encryptedData.data, 'hex', 'utf8');
@@ -92,24 +172,9 @@ class XiboUserAuth {
   }
 
   async promptUserCredentials() {
-    console.log(LOGO);
-    console.log(chalk.yellow('🔐 Authentification utilisateur Xibo\n'));
+    console.log(chalk.yellow('🔐 Authentification utilisateur Xibo\\n'));
 
     const questions = [
-      {
-        type: 'input',
-        name: 'xiboUrl',
-        message: 'URL de votre Xibo CMS:',
-        default: this.config.XIBO_API_URL || 'https://acces.xtranumerik.com',
-        validate: (input) => {
-          try {
-            new URL(input);
-            return true;
-          } catch {
-            return 'Veuillez entrer une URL valide';
-          }
-        }
-      },
       {
         type: 'input',
         name: 'username',
@@ -128,19 +193,19 @@ class XiboUserAuth {
     return inquirer.prompt(questions);
   }
 
-  async authenticateUser(credentials) {
-    console.log(chalk.cyan('\n🔍 Authentification en cours...\n'));
+  async authenticateUser(userCredentials, clientConfig) {
+    console.log(chalk.cyan('\\n🔍 Authentification en cours...\\n'));
 
-    const authUrl = credentials.xiboUrl.replace(/\/$/, '') + '/api/authorize/access_token';
+    const authUrl = clientConfig.apiUrl.replace(/\\/$/, '') + '/api/authorize/access_token';
     
     try {
-      // Première tentative avec authorization code flow simulé
+      // Première tentative avec password grant
       const formData = new URLSearchParams();
       formData.append('grant_type', 'password');
-      formData.append('username', credentials.username);
-      formData.append('password', credentials.password);
-      formData.append('client_id', this.config.XIBO_CLIENT_ID);
-      formData.append('client_secret', this.config.XIBO_CLIENT_SECRET);
+      formData.append('username', userCredentials.username);
+      formData.append('password', userCredentials.password);
+      formData.append('client_id', clientConfig.clientId);
+      formData.append('client_secret', clientConfig.clientSecret);
 
       console.log(chalk.gray('📡 Tentative d\'authentification password grant...'));
       
@@ -161,19 +226,19 @@ class XiboUserAuth {
       console.log(chalk.yellow('⚠️  Password grant non supporté, tentative avec authorization code...'));
       
       // Fallback vers authorization code flow
-      return this.handleAuthorizationCodeFlow(credentials);
+      return this.handleAuthorizationCodeFlow(userCredentials, clientConfig);
     }
 
     throw new Error('Échec de l\'authentification');
   }
 
-  async handleAuthorizationCodeFlow(credentials) {
-    console.log(chalk.cyan('\n🔗 Utilisation du flow Authorization Code\n'));
+  async handleAuthorizationCodeFlow(userCredentials, clientConfig) {
+    console.log(chalk.cyan('\\n🔗 Utilisation du flow Authorization Code\\n'));
     
-    const authUrl = credentials.xiboUrl.replace(/\/$/, '') + '/api/authorize';
+    const authUrl = clientConfig.apiUrl.replace(/\\/$/, '') + '/api/authorize';
     const redirectUri = 'http://localhost:3000/callback';
     
-    const authorizeUrl = `${authUrl}?response_type=code&client_id=${this.config.XIBO_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=all`;
+    const authorizeUrl = `${authUrl}?response_type=code&client_id=${clientConfig.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=all`;
     
     console.log(chalk.yellow('🌐 Veuillez vous connecter via votre navigateur:'));
     console.log(chalk.blue(authorizeUrl));
@@ -189,13 +254,13 @@ class XiboUserAuth {
     ]);
 
     // Exchange code for token
-    const tokenUrl = credentials.xiboUrl.replace(/\/$/, '') + '/api/authorize/access_token';
+    const tokenUrl = clientConfig.apiUrl.replace(/\\/$/, '') + '/api/authorize/access_token';
     const formData = new URLSearchParams();
     formData.append('grant_type', 'authorization_code');
     formData.append('code', authCode);
     formData.append('redirect_uri', redirectUri);
-    formData.append('client_id', this.config.XIBO_CLIENT_ID);
-    formData.append('client_secret', this.config.XIBO_CLIENT_SECRET);
+    formData.append('client_id', clientConfig.clientId);
+    formData.append('client_secret', clientConfig.clientSecret);
 
     const response = await axios.post(tokenUrl, formData, {
       headers: {
@@ -207,22 +272,29 @@ class XiboUserAuth {
     return response.data;
   }
 
-  saveTokens(tokens, credentials) {
+  saveTokens(tokens, userCredentials, clientConfig) {
+    // Créer le répertoire des tokens s'il n'existe pas
+    if (!fs.existsSync(this.tokenDir)) {
+      fs.mkdirSync(this.tokenDir, { recursive: true });
+    }
+
     const tokenData = {
-      access_token: this.encryptToken(tokens.access_token),
-      refresh_token: tokens.refresh_token ? this.encryptToken(tokens.refresh_token) : null,
+      access_token: this.encryptToken(tokens.access_token, clientConfig.clientSecret),
+      refresh_token: tokens.refresh_token ? this.encryptToken(tokens.refresh_token, clientConfig.clientSecret) : null,
       expires_at: tokens.expires_in ? Date.now() + (tokens.expires_in * 1000) : null,
-      username: credentials.username,
-      xibo_url: credentials.xiboUrl,
+      username: userCredentials.username,
+      xibo_url: clientConfig.apiUrl,
+      client_id: clientConfig.clientId,
       created_at: new Date().toISOString()
     };
 
-    fs.writeFileSync(this.tokenPath, JSON.stringify(tokenData, null, 2));
-    console.log(chalk.green('💾 Tokens sauvegardés de manière sécurisée'));
+    const tokenFile = path.join(this.tokenDir, `${userCredentials.username}.json`);
+    fs.writeFileSync(tokenFile, JSON.stringify(tokenData, null, 2));
+    console.log(chalk.green('💾 Tokens sauvegardés de manière sécurisée dans data/tokens/'));
   }
 
-  async testApiAccess(tokens, xiboUrl) {
-    console.log(chalk.cyan('\n🧪 Test d\'accès à l\'API...\n'));
+  async testApiAccess(tokens, apiUrl) {
+    console.log(chalk.cyan('\\n🧪 Test d\'accès à l\'API...\\n'));
 
     try {
       const testEndpoints = [
@@ -235,7 +307,7 @@ class XiboUserAuth {
 
       for (const test of testEndpoints) {
         try {
-          const response = await axios.get(xiboUrl.replace(/\/$/, '') + '/api' + test.endpoint, {
+          const response = await axios.get(apiUrl.replace(/\\/$/, '') + '/api' + test.endpoint, {
             headers: {
               'Authorization': `Bearer ${tokens.access_token}`,
               'Accept': 'application/json'
@@ -250,8 +322,8 @@ class XiboUserAuth {
         }
       }
 
-      console.log(chalk.green('\n🎉 Configuration terminée avec succès !'));
-      console.log(chalk.cyan('Vous pouvez maintenant utiliser le MCP server avec tous les outils disponibles.'));
+      console.log(chalk.green('\\n🎉 Configuration OAuth2 terminée avec succès !'));
+      console.log(chalk.cyan('Vous pouvez maintenant utiliser le MCP server avec tous les 117 outils disponibles.'));
 
     } catch (error) {
       console.log(chalk.red(`❌ Erreur lors du test: ${error.message}`));
@@ -260,17 +332,36 @@ class XiboUserAuth {
 
   async run() {
     try {
-      const credentials = await this.promptUserCredentials();
-      const tokens = await this.authenticateUser(credentials);
+      console.log(LOGO);
       
-      this.saveTokens(tokens, credentials);
-      await this.testApiAccess(tokens, credentials.xiboUrl);
+      // Étape 1: Obtenir/vérifier les credentials client
+      const clientConfig = await this.promptClientCredentials();
+      
+      // Étape 2: Créer/mettre à jour .env si nécessaire
+      if (!fs.existsSync(this.configPath) || !this.config.XIBO_CLIENT_ID) {
+        this.createEnvFile(this.config, clientConfig);
+      }
+      
+      // Étape 3: Authentification utilisateur
+      const userCredentials = await this.promptUserCredentials();
+      const tokens = await this.authenticateUser(userCredentials, clientConfig);
+      
+      // Étape 4: Sauvegarder les tokens
+      this.saveTokens(tokens, userCredentials, clientConfig);
+      
+      // Étape 5: Tester l'accès API
+      await this.testApiAccess(tokens, clientConfig.apiUrl);
 
-      console.log(chalk.green('\n✨ Authentification utilisateur configurée !'));
-      console.log(chalk.cyan('Redémarrez le serveur MCP pour utiliser les nouveaux tokens.'));
+      console.log(chalk.green('\\n✨ Authentification OAuth2 utilisateur configurée !'));
+      console.log(chalk.cyan('Le serveur MCP détectera automatiquement les tokens et activera les 117 outils.'));
+      console.log(chalk.yellow('Redémarrez le serveur MCP avec: npm start'));
 
     } catch (error) {
       console.error(chalk.red(`❌ Erreur: ${error.message}`));
+      console.log(chalk.yellow('\\n💡 Conseils de dépannage:'));
+      console.log(chalk.yellow('   1. Vérifiez que votre Client ID/Secret sont corrects'));
+      console.log(chalk.yellow('   2. Assurez-vous que l\'application Xibo autorise le grant_type "password"'));
+      console.log(chalk.yellow('   3. Vérifiez que votre compte utilisateur a les bonnes permissions'));
       process.exit(1);
     }
   }
