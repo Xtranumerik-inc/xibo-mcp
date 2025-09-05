@@ -174,18 +174,10 @@ class XiboMCPServer {
       const tools: Tool[] = Array.from(this.tools.values()).map(tool => ({
         name: tool.name,
         description: tool.description,
-        inputSchema: {
+        inputSchema: (tool as any).parameters || {
           type: 'object',
-          properties: tool.parameters.reduce((props, param) => {
-            props[param.name] = {
-              type: param.type,
-              description: param.description,
-              ...(param.enum && { enum: param.enum }),
-              ...(param.default !== undefined && { default: param.default })
-            };
-            return props;
-          }, {} as any),
-          required: tool.parameters.filter(p => p.required).map(p => p.name)
+          properties: {},
+          required: []
         }
       }));
 
