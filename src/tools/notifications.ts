@@ -10,19 +10,16 @@ export const notificationTools = [
   {
     name: 'notification_list',
     description: 'List notifications with filtering options',
-    parameters: {
-      type: 'object',
-      properties: {
-        subject: { type: 'string', description: 'Filter by subject' },
-        userId: { type: 'number', description: 'Filter by user ID' },
-        isEmail: { type: 'boolean', description: 'Filter by email notifications' },
-        isInterrupt: { type: 'boolean', description: 'Filter by interrupt notifications' },
-        isSystem: { type: 'boolean', description: 'Filter by system notifications' },
-        read: { type: 'boolean', description: 'Filter by read status' },
-        start: { type: 'number', description: 'Pagination start' },
-        length: { type: 'number', description: 'Number of results' }
-      }
-    },
+    parameters: [
+      { name: 'subject', type: 'string', description: 'Filter by subject', required: false },
+      { name: 'userId', type: 'number', description: 'Filter by user ID', required: false },
+      { name: 'isEmail', type: 'boolean', description: 'Filter by email notifications', required: false },
+      { name: 'isInterrupt', type: 'boolean', description: 'Filter by interrupt notifications', required: false },
+      { name: 'isSystem', type: 'boolean', description: 'Filter by system notifications', required: false },
+      { name: 'read', type: 'boolean', description: 'Filter by read status', required: false },
+      { name: 'start', type: 'number', description: 'Pagination start', required: false },
+      { name: 'length', type: 'number', description: 'Number of results', required: false }
+    ],
     handler: async (params: any, client: XiboClient) => {
       const queryParams: any = {};
       
@@ -47,45 +44,19 @@ export const notificationTools = [
   {
     name: 'emergency_alert_create',
     description: 'Create and broadcast emergency alert with geo-targeting',
-    parameters: {
-      type: 'object',
-      properties: {
-        title: { type: 'string', description: 'Alert title', required: true },
-        message: { type: 'string', description: 'Alert message', required: true },
-        alertType: { 
-          type: 'string', 
-          enum: ['warning', 'danger', 'info', 'success'],
-          description: 'Alert type',
-          default: 'warning'
-        },
-        severity: {
-          type: 'string',
-          enum: ['low', 'medium', 'high', 'critical'],
-          description: 'Alert severity',
-          default: 'medium'
-        },
-        duration: { type: 'number', description: 'Duration in seconds', default: 300 },
-        priority: { type: 'number', description: 'Display priority (1-10)', default: 5 },
-        regions: { 
-          type: 'array', 
-          items: { type: 'string' },
-          description: 'Target regions for geographic filtering'
-        },
-        displayIds: {
-          type: 'array',
-          items: { type: 'number' },
-          description: 'Specific display IDs to target'
-        },
-        tags: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Display tags to target'
-        },
-        expiresAt: { type: 'string', description: 'Alert expiration (ISO date)' },
-        scheduleDate: { type: 'string', description: 'Schedule for later (ISO date)' }
-      },
-      required: ['title', 'message']
-    },
+    parameters: [
+      { name: 'title', type: 'string', description: 'Alert title', required: true },
+      { name: 'message', type: 'string', description: 'Alert message', required: true },
+      { name: 'alertType', type: 'string', description: 'Alert type: warning, danger, info, success', required: false, default: 'warning' },
+      { name: 'severity', type: 'string', description: 'Alert severity: low, medium, high, critical', required: false, default: 'medium' },
+      { name: 'duration', type: 'number', description: 'Duration in seconds', required: false, default: 300 },
+      { name: 'priority', type: 'number', description: 'Display priority (1-10)', required: false, default: 5 },
+      { name: 'regions', type: 'array', description: 'Target regions for geographic filtering', required: false },
+      { name: 'displayIds', type: 'array', description: 'Specific display IDs to target', required: false },
+      { name: 'tags', type: 'array', description: 'Display tags to target', required: false },
+      { name: 'expiresAt', type: 'string', description: 'Alert expiration (ISO date)', required: false },
+      { name: 'scheduleDate', type: 'string', description: 'Schedule for later (ISO date)', required: false }
+    ],
     handler: async (params: any, client: XiboClient) => {
       try {
         // Create notification first
@@ -131,7 +102,7 @@ export const notificationTools = [
         }
         
         // Create emergency layout if not exists
-        let emergencyLayoutId: number;
+        let emergencyLayoutId: number = 0;
         try {
           const layouts = await client.get('/layout', { layout: 'Emergency Alert Template' });
           if (layouts.data.data && layouts.data.data.length > 0) {
