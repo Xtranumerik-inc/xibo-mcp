@@ -4,7 +4,7 @@
  */
 
 import { XiboClient } from '../xibo-client.js';
-import { Notification, EmergencyAlert } from '../types.js';
+import { EmergencyAlert } from '../types.js';
 
 export const notificationTools = [
   {
@@ -131,11 +131,23 @@ export const notificationTools = [
         }
         
         // Create emergency layout if not exists
-        let emergencyLayoutId;
+        let emergencyLayoutId: number;
         try {
           const layouts = await client.get('/layout', { layout: 'Emergency Alert Template' });
           if (layouts.data.data && layouts.data.data.length > 0) {
             emergencyLayoutId = layouts.data.data[0].layoutId;
+          } else {
+            // Create emergency layout
+            const emergencyLayout = {
+              name: 'Emergency Alert Template',
+              description: 'Auto-generated emergency alert layout',
+              width: 1920,
+              height: 1080,
+              backgroundColor: params.alertType === 'danger' ? '#dc3545' : '#ffc107'
+            };
+            
+            const layoutResponse = await client.post('/layout', emergencyLayout);
+            emergencyLayoutId = layoutResponse.data.layoutId;
           }
         } catch {
           // Create emergency layout
