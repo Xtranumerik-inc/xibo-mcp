@@ -261,6 +261,13 @@ export class XiboClient {
   }
 
   /**
+   * Get current authentication mode
+   */
+  public getAuthMode(): 'client_credentials' | 'user_tokens' {
+    return this.authMode;
+  }
+
+  /**
    * Get authentication status and user info
    */
   public getAuthStatus(): {
@@ -272,14 +279,14 @@ export class XiboClient {
     const status = {
       mode: this.authMode,
       isAuthenticated: false,
-      userInfo: undefined,
-      tokenStats: undefined
+      userInfo: undefined as any,
+      tokenStats: undefined as any
     };
 
     if (this.authMode === 'user_tokens' && this.tokenManager) {
       status.isAuthenticated = this.tokenManager.isAuthenticated();
-      status.userInfo = this.tokenManager.getUserInfo();
-      status.tokenStats = this.tokenManager.getTokenStats();
+      status.userInfo = this.tokenManager.getUserInfo() || undefined;
+      status.tokenStats = this.tokenManager.getTokenStats() || undefined;
     } else {
       status.isAuthenticated = this.isTokenValid();
     }
