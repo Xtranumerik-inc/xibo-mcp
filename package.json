@@ -1,7 +1,7 @@
 {
   "name": "@xtranumerik/xibo-mcp",
-  "version": "1.0.0",
-  "description": "Professional MCP server for Xibo Digital Signage CMS - Complete API integration by Xtranumerik Inc.",
+  "version": "2.0.0",
+  "description": "Professional MCP server for Xibo Digital Signage CMS - Complete 117-tool API integration with advanced Quebec/Montreal features by Xtranumerik Inc.",
   "author": "Xtranumerik Inc.",
   "license": "MIT",
   "main": "dist/index.js",
@@ -13,9 +13,11 @@
     "start": "node dist/index.js",
     "register-app": "node scripts/register-xibo-app.js",
     "configure-claude": "node scripts/configure-claude.js",
+    "auth-user": "node scripts/oauth-user-setup.js",
     "test": "jest",
     "test-auth": "node scripts/test-auth.js",
-    "lint": "eslint src/**/*.ts"
+    "lint": "eslint src/**/*.ts",
+    "validate": "node scripts/validate-tools.js"
   },
   "keywords": [
     "mcp",
@@ -24,7 +26,17 @@
     "cms",
     "xtranumerik",
     "api",
-    "oauth"
+    "oauth",
+    "quebec",
+    "montreal",
+    "geographic-filtering",
+    "emergency-alerts",
+    "menu-boards",
+    "automation",
+    "analytics",
+    "professional",
+    "french-canadian",
+    "bilingual"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.17.5",
@@ -34,11 +46,14 @@
     "winston": "^3.11.0",
     "chalk": "^5.3.0",
     "inquirer": "^9.2.15",
-    "ora": "^8.0.1"
+    "ora": "^8.0.1",
+    "node-cron": "^3.0.3",
+    "crypto": "^1.0.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
     "@types/inquirer": "^9.0.7",
+    "@types/node-cron": "^3.0.11",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "eslint": "^8.56.0",
@@ -48,5 +63,17 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Xtranumerik-inc/xibo-mcp.git"
+  },
+  "homepage": "https://www.xtranumerik.ca",
+  "bugs": {
+    "url": "https://github.com/Xtranumerik-inc/xibo-mcp/issues"
+  },
+  "funding": {
+    "type": "individual",
+    "url": "https://www.xtranumerik.ca/support"
   }
 }
