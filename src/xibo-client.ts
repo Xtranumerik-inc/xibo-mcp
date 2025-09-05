@@ -5,10 +5,7 @@
  */
 
 import axios, { AxiosInstance, AxiosError } from 'axios';
-import FormData from 'form-data';
-import * as fs from 'fs';
-import * as path from 'path';
-import { XiboAuthConfig, XiboTokenResponse, ApiResponse, ApiError, User, UserGroup, SystemInfo, AuditLog, Webhook, Report, AuthMode } from './types.js';
+import { XiboAuthConfig, XiboTokenResponse, ApiResponse, ApiError, User, UserGroup, SystemInfo, AuditLog } from './types.js';
 import { TokenManager } from './auth/token-manager.js';
 import { DirectUserAuth } from './auth/direct-auth.js';
 
