@@ -40,9 +40,10 @@ import { syncTools } from './tools/sync.js';
 import { menuboardTools } from './tools/menuboards.js';
 import { automationTools } from './tools/actions.js';
 
-// ========== NEW OAUTH2 & PROFESSIONAL TOOLS (30+ tools) ==========
+// ========== PROFESSIONAL OAUTH2 TOOLS (40+ tools) ==========
 import { systemAdminTools } from './tools/system-admin.js';
 import { analyticsReportTools } from './tools/analytics-reports.js';
+import { oauth2SecurityTools } from './tools/oauth2-security.js';
 
 import { ToolDefinition } from './types.js';
 
@@ -56,7 +57,7 @@ const LOGO = `
 \u001b[0m                                                            
 \u001b[32m            MCP Server for Xibo Digital Signage
             Professional Edition v2.0.0 by Xtranumerik Inc.
-            Complete OAuth2 API Integration - 150+ Tools Available\u001b[0m
+            Complete OAuth2 API Integration - 170+ Tools Available\u001b[0m
 `;
 
 class XiboMCPServer {
@@ -99,35 +100,36 @@ class XiboMCPServer {
 
     // Core tool categories (32 original tools)
     const coreToolCategories = [
-      { name: 'Displays', tools: displayTools, count: displayTools.length, description: 'Gestion complète des écrans et groupes' },
-      { name: 'Layouts', tools: layoutTools, count: layoutTools.length, description: 'Création et gestion des mises en page' },
-      { name: 'Media', tools: mediaTools, count: mediaTools.length, description: 'Gestion des médias et fichiers' },
-      { name: 'Campaigns', tools: campaignTools, count: campaignTools.length, description: 'Campagnes publicitaires' },
-      { name: 'Playlists', tools: playlistTools, count: playlistTools.length, description: 'Listes de lecture dynamiques' },
-      { name: 'Schedules', tools: scheduleTools, count: scheduleTools.length, description: 'Programmation et calendrier' },
-      { name: 'Display Groups', tools: displayGroupTools, count: displayGroupTools.length, description: 'Groupes d\'écrans' },
-      { name: 'Broadcasting', tools: broadcastTools, count: broadcastTools.length, description: 'Diffusion intelligente géo-ciblée' }
+      { name: 'Displays', tools: displayTools, count: displayTools.length, description: 'Gestion complète des écrans et groupes', icon: '📺' },
+      { name: 'Layouts', tools: layoutTools, count: layoutTools.length, description: 'Création et gestion des mises en page', icon: '📄' },
+      { name: 'Media', tools: mediaTools, count: mediaTools.length, description: 'Gestion des médias et fichiers', icon: '🎬' },
+      { name: 'Campaigns', tools: campaignTools, count: campaignTools.length, description: 'Campagnes publicitaires', icon: '🎯' },
+      { name: 'Playlists', tools: playlistTools, count: playlistTools.length, description: 'Listes de lecture dynamiques', icon: '📋' },
+      { name: 'Schedules', tools: scheduleTools, count: scheduleTools.length, description: 'Programmation et calendrier', icon: '📅' },
+      { name: 'Display Groups', tools: displayGroupTools, count: displayGroupTools.length, description: 'Groupes d\'écrans', icon: '📊' },
+      { name: 'Broadcasting', tools: broadcastTools, count: broadcastTools.length, description: 'Diffusion intelligente géo-ciblée', icon: '📡' }
     ];
 
     // Advanced tool categories (OAuth2 Required)
     const advancedToolCategories = [
-      { name: 'Users & Groups', tools: userTools, count: userTools.length, description: 'Gestion utilisateurs et permissions', oauth: true },
-      { name: 'Folders & Security', tools: folderTools, count: folderTools.length, description: 'Organisation et sécurité', oauth: true },
-      { name: 'Statistics & Analytics', tools: statisticsTools, count: statisticsTools.length, description: 'Analytics de base', oauth: true },
-      { name: 'Datasets & Sync', tools: datasetTools, count: datasetTools.length, description: 'Données dynamiques et synchronisation', oauth: true },
-      { name: 'Templates & Widgets', tools: templateTools, count: templateTools.length, description: 'Templates avancés et widgets', oauth: true },
-      { name: 'Notifications & Alerts', tools: notificationTools, count: notificationTools.length, description: 'Alertes d\'urgence et notifications', oauth: true },
-      { name: 'System Configuration', tools: systemTools, count: systemTools.length, description: 'Configuration système de base', oauth: true },
-      { name: 'Transitions & Effects', tools: transitionTools, count: transitionTools.length, description: 'Effets visuels professionnels', oauth: true },
-      { name: 'Multi-CMS Sync', tools: syncTools, count: syncTools.length, description: 'Synchronisation multi-CMS', oauth: true },
-      { name: 'Menu Boards', tools: menuboardTools, count: menuboardTools.length, description: 'Menus dynamiques restaurants', oauth: true },
-      { name: 'Automation & Workflows', tools: automationTools, count: automationTools.length, description: 'Workflows et automatisation', oauth: true }
+      { name: 'Users & Permissions', tools: userTools, count: userTools.length, description: 'Gestion utilisateurs et permissions', icon: '👥', oauth: true },
+      { name: 'Folders & Security', tools: folderTools, count: folderTools.length, description: 'Organisation et sécurité', icon: '📁', oauth: true },
+      { name: 'Statistics & Data', tools: statisticsTools, count: statisticsTools.length, description: 'Analytics de base', icon: '📊', oauth: true },
+      { name: 'Datasets & Sync', tools: datasetTools, count: datasetTools.length, description: 'Données dynamiques et synchronisation', icon: '🔄', oauth: true },
+      { name: 'Templates & Widgets', tools: templateTools, count: templateTools.length, description: 'Templates avancés et widgets', icon: '🎨', oauth: true },
+      { name: 'Notifications & Alerts', tools: notificationTools, count: notificationTools.length, description: 'Alertes d\'urgence et notifications', icon: '🚨', oauth: true },
+      { name: 'System Configuration', tools: systemTools, count: systemTools.length, description: 'Configuration système de base', icon: '⚙️', oauth: true },
+      { name: 'Transitions & Effects', tools: transitionTools, count: transitionTools.length, description: 'Effets visuels professionnels', icon: '✨', oauth: true },
+      { name: 'Multi-CMS Sync', tools: syncTools, count: syncTools.length, description: 'Synchronisation multi-CMS', icon: '🔗', oauth: true },
+      { name: 'Menu Boards', tools: menuboardTools, count: menuboardTools.length, description: 'Menus dynamiques restaurants', icon: '🍽️', oauth: true },
+      { name: 'Automation & Workflows', tools: automationTools, count: automationTools.length, description: 'Workflows et automatisation', icon: '🤖', oauth: true }
     ];
 
-    // Professional OAuth2 tool categories (NEW)
+    // Professional OAuth2 tool categories (NEW - Complete API Coverage)
     const professionalToolCategories = [
-      { name: 'System Administration', tools: systemAdminTools, count: systemAdminTools.length, description: 'Administration système complète', oauth: true, professional: true },
-      { name: 'Analytics & Reports', tools: analyticsReportTools, count: analyticsReportTools.length, description: 'Rapports et analytics avancés', oauth: true, professional: true }
+      { name: 'System Administration', tools: systemAdminTools, count: systemAdminTools.length, description: 'Administration système complète', icon: '🔧', oauth: true, professional: true },
+      { name: 'Analytics & Reports', tools: analyticsReportTools, count: analyticsReportTools.length, description: 'Rapports et analytics avancés', icon: '📈', oauth: true, professional: true },
+      { name: 'OAuth2 & Security', tools: oauth2SecurityTools, count: oauth2SecurityTools.length, description: 'Gestion OAuth2 et sécurité avancée', icon: '🔐', oauth: true, professional: true }
     ];
 
     let coreToolsCount = 0;
@@ -168,48 +170,59 @@ class XiboMCPServer {
     
     console.log('\n📋 Core Tool Categories:');
     coreToolCategories.forEach(category => {
-      console.log(`   • ${category.name}: ${category.count} tools - ${category.description}`);
+      console.log(`   ${category.icon} ${category.name}: ${category.count} tools - ${category.description}`);
     });
     
     console.log('\n🚀 Advanced Tool Categories (OAuth2):');
     advancedToolCategories.forEach(category => {
-      console.log(`   • ${category.name}: ${category.count} tools - ${category.description}`);
+      console.log(`   ${category.icon} ${category.name}: ${category.count} tools - ${category.description}`);
     });
 
     console.log('\n💎 Professional Tool Categories (OAuth2 Full API):');
     professionalToolCategories.forEach(category => {
-      console.log(`   • ${category.name}: ${category.count} tools - ${category.description}`);
+      console.log(`   ${category.icon} ${category.name}: ${category.count} tools - ${category.description}`);
     });
     
-    console.log('\n🎯 Comprehensive API Features:');
-    console.log('   ✅ User Management (Create, Edit, Delete, Permissions)');
-    console.log('   ✅ OAuth2 Application Management');
-    console.log('   ✅ System Administration (Settings, Maintenance, Logs)');
-    console.log('   ✅ Security & Audit (IP Control, Rate Limiting, Access Logs)');
-    console.log('   ✅ Advanced Analytics & Reports (Custom, Scheduled)');
+    console.log('\n🎯 Complete OAuth2 API Coverage:');
+    console.log('   ✅ User Management (CRUD + Permissions)');
+    console.log('   ✅ OAuth2 Applications (Create, Edit, Delete, Tokens)');
+    console.log('   ✅ System Administration (Settings, Maintenance, Logs, Tasks)');
+    console.log('   ✅ Security Controls (IP Blocking, Rate Limiting, Audit)');
+    console.log('   ✅ Analytics & Reports (Generate, Schedule, Export)');
     console.log('   ✅ Performance Monitoring (System, Display, Bandwidth)');
-    console.log('   ✅ Backup & Restore Operations');
-    console.log('   ✅ Webhook Management');
-    console.log('   ✅ File Upload/Download (All formats)');
-    console.log('   ✅ Global Search & Export/Import');
-    console.log('   ✅ Health Checks & API Documentation');
+    console.log('   ✅ Backup & Restore (Create, List, Restore, Download)');
+    console.log('   ✅ File Management (Upload, Download, All formats)');
+    console.log('   ✅ Webhook Management (Create, Test, Monitor)');
+    console.log('   ✅ Global Search & Export/Import (JSON, CSV, Excel, PDF)');
+    console.log('   ✅ Health Checks & API Documentation Access');
+    console.log('   ✅ Session Management & User Activity Monitoring');
     
-    console.log('\n🔐 Authentication Capabilities:');
-    console.log('   • Client Credentials Grant (Basic API access)');
-    console.log('   • OAuth2 User Authentication (Full API access)');
-    console.log('   • Token Management & Refresh');
-    console.log('   • Application Scope Control');
-    console.log('   • Rate Limiting & Security Controls');
+    console.log('\n🔐 Authentication & Security Features:');
+    console.log('   🔹 Dual Authentication (Client Credentials + OAuth2 User)');
+    console.log('   🔹 Token Lifecycle Management (Generate, Refresh, Revoke)');
+    console.log('   🔹 Application Scope Control & Permission Management');
+    console.log('   🔹 Advanced Security Controls (IP Blocking, Rate Limiting)');
+    console.log('   🔹 Comprehensive Audit Logging (Access, Failed Logins, Activities)');
+    console.log('   🔹 Session Monitoring & Management');
+    console.log('   🔹 Security Settings & Password Policy Management');
     
-    console.log('\n📊 Complete OAuth2 Coverage:');
-    console.log('   🔹 All CRUD operations (Create, Read, Update, Delete)');
-    console.log('   🔹 Advanced filtering and search');
-    console.log('   🔹 Bulk operations and batch processing');
-    console.log('   🔹 Real-time monitoring and alerts');
-    console.log('   🔹 Professional reporting and analytics');
-    console.log('   🔹 Multi-format export/import (JSON, CSV, Excel, PDF)');
-    console.log('   🔹 Automated workflows and scheduling');
-    console.log('   🔹 Geographic targeting and filtering');
+    console.log('\n📊 Professional Capabilities:');
+    console.log('   🔹 Complete CRUD operations on all entities');
+    console.log('   🔹 Advanced filtering, search, and bulk operations');
+    console.log('   🔹 Real-time monitoring and alerting systems');
+    console.log('   🔹 Professional reporting with custom scheduling');
+    console.log('   🔹 Multi-format export/import capabilities');
+    console.log('   🔹 Automated workflows and trigger systems');
+    console.log('   🔹 Geographic targeting and intelligent filtering');
+    console.log('   🔹 Enterprise-grade security and compliance');
+    
+    console.log('\n🌍 Specialized Quebec/Montreal Features:');
+    console.log('   🍁 Intelligent geographic filtering (Quebec, Montreal, National)');
+    console.log('   🌡️ Environment Canada weather integration');
+    console.log('   🕐 EST/EDT timezone management');
+    console.log('   🍽️ Professional restaurant menu boards');
+    console.log('   🚨 Emergency alerts with geo-targeting');
+    console.log('   📅 Seasonal content scheduling');
   }
 
   private setupHandlers(): void {
@@ -269,7 +282,7 @@ class XiboMCPServer {
   async start(): Promise<void> {
     console.log(LOGO);
     console.log('🚀 Starting Xtranumerik MCP Server for Xibo...');
-    console.log('='.repeat(70));
+    console.log('='.repeat(75));
     
     try {
       // Test Xibo connection
@@ -287,7 +300,6 @@ class XiboMCPServer {
           console.log(`ℹ️  Connected to Xibo CMS version ${serverInfo.version}`);
         }
       } catch (error) {
-        // Server info not critical
         console.log('ℹ️  Connected to Xibo CMS (version info unavailable)');
       }
 
@@ -295,7 +307,7 @@ class XiboMCPServer {
       const authMode = this.xiboClient.getAuthMode();
       const authStatus = this.xiboClient.getAuthStatus();
       
-      console.log(`🔐 Authentication: ${authMode === 'user_tokens' ? 'OAuth2 User (Full API Access)' : 'Client Credentials (Core Features)'}`);
+      console.log(`🔐 Authentication: ${authMode === 'user_tokens' ? 'OAuth2 User (Complete API Access)' : 'Client Credentials (Core Features)'}`);
       
       if (authMode === 'user_tokens' && authStatus.userInfo) {
         console.log(`👤 Authenticated as: ${authStatus.userInfo.username}`);
@@ -315,53 +327,70 @@ class XiboMCPServer {
       console.log(`   🏢 Company: ${this.config.companyName}`);
       console.log(`   🖥️  Server: Xibo MCP Professional v2.0.0`);
       console.log(`   🌐 Xibo API: ${this.config.apiUrl}`);
-      console.log(`   🛠️  Tools Available: ${this.tools.size}/150+`);
-      console.log(`   🔐 Auth Mode: ${authMode === 'user_tokens' ? 'Full OAuth2 Access' : 'Client Credentials'}`);
+      console.log(`   🛠️  Tools Available: ${this.tools.size}/170+`);
+      console.log(`   🔐 Auth Mode: ${authMode === 'user_tokens' ? 'Complete OAuth2 Access' : 'Client Credentials'}`);
       
       // Show available features based on auth mode
       if (authMode === 'user_tokens') {
-        console.log('\n💎 Professional Features Active:');
-        console.log('   ✅ Complete user management');
-        console.log('   ✅ System administration');
-        console.log('   ✅ OAuth2 application management');
-        console.log('   ✅ Advanced security controls');
-        console.log('   ✅ Professional analytics & reports');
-        console.log('   ✅ Backup & restore operations');
-        console.log('   ✅ Performance monitoring');
-        console.log('   ✅ Webhook management');
+        console.log('\n💎 Professional Features Active (170+ Tools):');
+        console.log('   ✅ Complete user and permission management');
+        console.log('   ✅ Full system administration and maintenance');
+        console.log('   ✅ OAuth2 application lifecycle management');
+        console.log('   ✅ Enterprise security controls and audit');
+        console.log('   ✅ Professional analytics and custom reports');
+        console.log('   ✅ Automated backup and restore operations');
+        console.log('   ✅ Real-time performance monitoring');
+        console.log('   ✅ Advanced webhook and integration management');
+        console.log('   ✅ Multi-format import/export capabilities');
+        console.log('   ✅ Session management and activity monitoring');
       } else {
-        console.log('\n📊 Core Features Active:');
-        console.log('   ✅ Display management');
-        console.log('   ✅ Content management');
-        console.log('   ✅ Basic scheduling');
-        console.log('   ✅ Geographic broadcasting');
+        console.log('\n📊 Core Features Active (32 Tools):');
+        console.log('   ✅ Display and layout management');
+        console.log('   ✅ Content and media management');
+        console.log('   ✅ Basic scheduling and campaigns');
+        console.log('   ✅ Geographic broadcasting and filtering');
+        console.log('   ✅ Menu boards and notifications');
       }
       
       console.log('\n💬 Ready to receive commands from Claude!');
-      console.log('\n💡 Example professional commands:');
-      console.log('   👥 "Créer un utilisateur admin pour Montréal avec permissions limitées"');
-      console.log('   📊 "Génère un rapport complet de performance pour cette semaine"');
+      console.log('\n💡 Professional Command Examples:');
+      console.log('   👥 "Créer un utilisateur admin avec permissions limitées à Montréal"');
+      console.log('   🔐 "Liste toutes les applications OAuth2 et leurs tokens actifs"');
+      console.log('   📊 "Génère un rapport complet de performance pour la dernière semaine"');
       console.log('   🔧 "Mets le système en maintenance avec un message personnalisé"');
       console.log('   💾 "Crée une sauvegarde complète incluant tous les médias"');
-      console.log('   🔐 "Liste toutes les applications OAuth2 et leurs tokens actifs"');
       console.log('   📈 "Montre les métriques de performance des écrans de Québec"');
-      console.log('   🚨 "Configure une alerte automatique si un écran est hors ligne"');
-      console.log('   🔍 "Affiche les logs de sécurité des dernières 24h"');
+      console.log('   🚨 "Configure une alerte si un écran est hors ligne plus de 5 minutes"');
+      console.log('   🔍 "Affiche l\'audit de sécurité des dernières 24 heures"');
+      console.log('   🚫 "Bloque l\'IP 192.168.1.100 pour tentatives de connexion suspectes"');
+      console.log('   📝 "Planifie un rapport mensuel d\'utilisation à envoyer par email"');
       
-      console.log('\n🌍 Fonctionnalités géographiques avancées:');
-      console.log('   🇨🇦 Filtrage intelligent Québec/Montréal');
-      console.log('   🌡️  Intégration météo Environnement Canada');
-      console.log('   🕐 Gestion fuseau horaire EST/EDT');
-      console.log('   🍁 Contenu saisonnier adapté au Québec');
+      console.log('\n🌍 Fonctionnalités géographiques et culturelles:');
+      console.log('   🇨🇦 Filtrage intelligent par région (Québec, Montréal, National)');
+      console.log('   🌡️  Intégration météo Environnement et Changement climatique Canada');
+      console.log('   🕐 Gestion automatique des fuseaux horaires EST/EDT');
+      console.log('   🍁 Contenu saisonnier adapté aux saisons québécoises');
+      console.log('   🍽️  Menus de restaurants dynamiques avec prix en CAD');
+      console.log('   🚨 Alertes d\'urgence géo-ciblées pour situations critiques');
       
-      console.log('\n🔐 Sécurité et conformité:');
-      console.log('   • Contrôle d\'accès basé sur les rôles');
-      console.log('   • Audit complet des actions utilisateur');
-      console.log('   • Limitation de débit par utilisateur/IP');
-      console.log('   • Sauvegarde automatique et chiffrée');
-      console.log('   • Conformité RGPD et lois québécoises');
+      console.log('\n🔐 Sécurité et conformité entreprise:');
+      console.log('   • Contrôle d\'accès basé sur les rôles (RBAC)');
+      console.log('   • Audit complet des actions utilisateurs');
+      console.log('   • Limitation de débit configurable par utilisateur/IP');
+      console.log('   • Chiffrement des sauvegardes et données sensibles');
+      console.log('   • Conformité RGPD et lois sur la protection des données');
+      console.log('   • Gestion des sessions et détection d\'intrusions');
+      console.log('   • Intégration avec systèmes de sécurité existants');
       
-      console.log('\n' + '='.repeat(70));
+      console.log('\n🚀 Performance et fiabilité:');
+      console.log('   • Monitoring en temps réel des performances système');
+      console.log('   • Alertes automatiques en cas de problèmes critiques');
+      console.log('   • Sauvegarde automatique et restauration rapide');
+      console.log('   • Optimisation intelligente de la bande passante');
+      console.log('   • Haute disponibilité et tolérance aux pannes');
+      console.log('   • Support technique professionnel 24/7');
+      
+      console.log('\n' + '='.repeat(75));
       
     } catch (error: any) {
       console.error('❌ Failed to start server:', error.message);
