@@ -6,7 +6,7 @@
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
-import { XiboMCPConfig, GeoZone, RegionPermission } from '../types.js';
+import { XiboMCPConfig, GeoZone, RegionPermission, AuthMode } from '../types.js';
 
 // Load environment variables
 dotenv.config();
@@ -37,12 +37,23 @@ function parseCommaSeparated(value: string | undefined): string[] {
  * Load configuration from environment variables
  */
 export function loadConfig(): XiboMCPConfig {
-  // Validate required environment variables
-  const required = ['XIBO_API_URL', 'XIBO_CLIENT_ID', 'XIBO_CLIENT_SECRET'];
-  const missing = required.filter(key => !process.env[key]);
+  // Get authentication mode (default to client_credentials for backward compatibility)
+  const authMode = (process.env.XIBO_AUTH_MODE as AuthMode) || 'client_credentials';
+
+  // Validate required environment variables based on auth mode
+  const baseRequired = ['XIBO_API_URL'];
+  let requiredVariables = [...baseRequired];
+
+  if (authMode === 'client_credentials') {
+    requiredVariables.push('XIBO_CLIENT_ID', 'XIBO_CLIENT_SECRET');
+  } else if (authMode === 'direct_user') {
+    requiredVariables.push('XIBO_USERNAME', 'XIBO_PASSWORD');
+  }
+
+  const missing = requiredVariables.filter(key => !process.env[key]);
   
   if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}\nPlease copy .env.example to .env and configure it.`);
+    throw new Error(`Missing required environment variables for ${authMode} mode: ${missing.join(', ')}\\nPlease copy .env.example to .env and configure it.`);
   }
 
   // Parse geographic zones
@@ -90,11 +101,20 @@ export function loadConfig(): XiboMCPConfig {
 
   // Build configuration object
   const config: XiboMCPConfig = {
+    // Authentication Configuration
+    authMode,
+    
     // Xibo API Configuration
     apiUrl: process.env.XIBO_API_URL!,
-    clientId: process.env.XIBO_CLIENT_ID!,
-    clientSecret: process.env.XIBO_CLIENT_SECRET!,
+
+    // OAuth2 / Client Credentials (optional based on auth mode)
+    clientId: process.env.XIBO_CLIENT_ID,
+    clientSecret: process.env.XIBO_CLIENT_SECRET,
     grantType: (process.env.XIBO_GRANT_TYPE as 'client_credentials' | 'authorization_code') || 'client_credentials',
+
+    // Direct User Authentication (optional based on auth mode)
+    username: process.env.XIBO_USERNAME,
+    password: process.env.XIBO_PASSWORD,
 
     // MCP Server Configuration
     serverName: process.env.MCP_SERVER_NAME || 'xibo-mcp',
@@ -144,13 +164,23 @@ export function validateConfig(config: XiboMCPConfig): boolean {
     errors.push('Invalid XIBO_API_URL format');
   }
 
-  // Validate client credentials
-  if (!config.clientId || config.clientId.length < 5) {
-    errors.push('XIBO_CLIENT_ID must be at least 5 characters');
-  }
+  // Validate authentication based on mode
+  if (config.authMode === 'client_credentials') {
+    if (!config.clientId || config.clientId.length < 5) {
+      errors.push('XIBO_CLIENT_ID must be at least 5 characters for client_credentials mode');
+    }
 
-  if (!config.clientSecret || config.clientSecret.length < 10) {
-    errors.push('XIBO_CLIENT_SECRET must be at least 10 characters');
+    if (!config.clientSecret || config.clientSecret.length < 10) {
+      errors.push('XIBO_CLIENT_SECRET must be at least 10 characters for client_credentials mode');
+    }
+  } else if (config.authMode === 'direct_user') {
+    if (!config.username || config.username.length < 3) {
+      errors.push('XIBO_USERNAME must be at least 3 characters for direct_user mode');
+    }
+
+    if (!config.password || config.password.length < 6) {
+      errors.push('XIBO_PASSWORD must be at least 6 characters for direct_user mode');
+    }
   }
 
   // Validate port
@@ -192,6 +222,22 @@ export function getConfig(): XiboMCPConfig {
 }
 
 /**
+ * Check if the current configuration uses direct user authentication
+ */
+export function isDirectUserMode(): boolean {
+  const config = getConfig();
+  return config.authMode === 'direct_user';
+}
+
+/**
+ * Check if the current configuration uses OAuth2/client credentials
+ */
+export function isClientCredentialsMode(): boolean {
+  const config = getConfig();
+  return config.authMode === 'client_credentials';
+}
+
+/**
  * Export geographic zone helpers
  */
 export function getCitiesInZone(zoneName: string): string[] {
@@ -225,6 +271,8 @@ export default {
   loadConfig,
   validateConfig,
   getConfig,
+  isDirectUserMode,
+  isClientCredentialsMode,
   getCitiesInZone,
   isDisplayInZone,
   getPermissionsForClient,
