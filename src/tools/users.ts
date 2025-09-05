@@ -5,27 +5,24 @@
  */
 
 import { XiboClient } from '../xibo-client.js';
-import { User, UserGroup } from '../types.js';
+import { User } from '../types.js';
 
 export const userTools = [
   {
     name: 'user_list',
     description: 'List all users with filtering and search capabilities',
-    parameters: {
-      type: 'object',
-      properties: {
-        userId: { type: 'number', description: 'Filter by specific user ID' },
-        userName: { type: 'string', description: 'Filter by username' },
-        userTypeId: { type: 'number', description: 'Filter by user type ID' },
-        retired: { type: 'boolean', description: 'Filter by retired status' },
-        firstName: { type: 'string', description: 'Filter by first name' },
-        lastName: { type: 'string', description: 'Filter by last name' },
-        email: { type: 'string', description: 'Filter by email address' },
-        groupId: { type: 'number', description: 'Filter by group membership' },
-        start: { type: 'number', description: 'Pagination start' },
-        length: { type: 'number', description: 'Number of results to return' }
-      }
-    },
+    parameters: [
+      { name: 'userId', type: 'number', description: 'Filter by specific user ID', required: false },
+      { name: 'userName', type: 'string', description: 'Filter by username', required: false },
+      { name: 'userTypeId', type: 'number', description: 'Filter by user type ID', required: false },
+      { name: 'retired', type: 'boolean', description: 'Filter by retired status', required: false },
+      { name: 'firstName', type: 'string', description: 'Filter by first name', required: false },
+      { name: 'lastName', type: 'string', description: 'Filter by last name', required: false },
+      { name: 'email', type: 'string', description: 'Filter by email address', required: false },
+      { name: 'groupId', type: 'number', description: 'Filter by group membership', required: false },
+      { name: 'start', type: 'number', description: 'Pagination start', required: false },
+      { name: 'length', type: 'number', description: 'Number of results to return', required: false }
+    ],
     handler: async (params: any, client: XiboClient) => {
       const queryParams: any = {};
       
@@ -67,15 +64,11 @@ export const userTools = [
   {
     name: 'user_get',
     description: 'Get detailed information about a specific user',
-    parameters: {
-      type: 'object',
-      properties: {
-        userId: { type: 'number', description: 'User ID', required: true },
-        includeGroups: { type: 'boolean', description: 'Include group memberships', default: true },
-        includePermissions: { type: 'boolean', description: 'Include user permissions', default: false }
-      },
-      required: ['userId']
-    },
+    parameters: [
+      { name: 'userId', type: 'number', description: 'User ID', required: true },
+      { name: 'includeGroups', type: 'boolean', description: 'Include group memberships', required: false, default: true },
+      { name: 'includePermissions', type: 'boolean', description: 'Include user permissions', required: false, default: false }
+    ],
     handler: async (params: any, client: XiboClient) => {
       const user = await client.get(`/user/${params.userId}`);
       
