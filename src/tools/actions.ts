@@ -17,11 +17,9 @@ const actionList: ToolDefinition = {
     { name: 'active', type: 'number', description: 'Filter by status (1=active, 0=inactive)', required: false }
   ],
   handler: async (params: any) => {
-    const client: XiboClient = params._xiboClient;
-    
     try {
       // Predefined automation actions available in Xibo
-      const automationActions = {
+      const automationActions: Record<string, any[]> = {
         'content': [
           {
             name: 'publish_layout',
@@ -47,7 +45,7 @@ const actionList: ToolDefinition = {
           {
             name: 'seasonal_switch',
             displayName: 'Basculement Saisonnier',
-            description: 'Change le contenu selon la saison (parfait pour Québec)',
+            description: 'Change le contenu selon la saison (parfait pour région)',
             triggers: ['date', 'weather', 'manual'],
             parameters: ['seasonalContent', 'location', 'fallback']
           }
@@ -116,7 +114,7 @@ const actionList: ToolDefinition = {
         ]
       };
 
-      let result = `🤖 **Actions d'automatisation disponibles**\n\n`;
+      let result = `🤖 **Actions d'automatisation disponibles**\\n\\n`;
       
       const filterCategory = params.category?.toLowerCase();
       let actionsToShow = automationActions;
@@ -127,8 +125,8 @@ const actionList: ToolDefinition = {
       
       let totalActions = 0;
       
-      Object.entries(actionsToShow).forEach(([category, actions]: [string, any]) => {
-        const categoryEmojis: any = {
+      Object.entries(actionsToShow).forEach(([category, actions]: [string, any[]]) => {
+        const categoryEmojis: Record<string, string> = {
           'content': '📄',
           'display': '📺',
           'notification': '🔔',
@@ -136,26 +134,26 @@ const actionList: ToolDefinition = {
         };
         
         const emoji = categoryEmojis[category] || '🔧';
-        result += `${emoji} **${category.toUpperCase()} (${actions.length} actions)**\n\n`;
+        result += `${emoji} **${category.toUpperCase()} (${actions.length} actions)**\\n\\n`;
         
-        actions.forEach((action: any, index: number) => {
-          result += `   **${index + 1}. ${action.displayName}** (\`${action.name}\`)\n`;
-          result += `      📝 ${action.description}\n`;
-          result += `      🔄 Déclencheurs: ${action.triggers.join(', ')}\n`;
-          result += `      ⚙️ Paramètres: ${action.parameters.join(', ')}\n\n`;
+        actions.forEach((action: any) => {
+          result += `   **${action.displayName}** (\`${action.name}\`)\\n`;
+          result += `      📝 ${action.description}\\n`;
+          result += `      🔄 Déclencheurs: ${action.triggers.join(', ')}\\n`;
+          result += `      ⚙️ Paramètres: ${action.parameters.join(', ')}\\n\\n`;
         });
         
         totalActions += actions.length;
       });
       
-      result += `📊 **Résumé: ${totalActions} actions disponibles**\n\n`;
+      result += `📊 **Résumé: ${totalActions} actions disponibles**\\n\\n`;
       
-      result += `🍁 **Spécial Québec/Montréal:**\n`;
-      result += `   Les actions \"seasonal_switch\" et \"weather_alert\"\n`;
-      result += `   sont optimisées pour les conditions locales\n\n`;
+      result += `🌍 **Optimisé pour votre région:**\\n`;
+      result += `   Les actions "seasonal_switch" et "weather_alert"\\n`;
+      result += `   sont optimisées pour les conditions locales\\n\\n`;
       
-      result += `💡 **Pour créer une action personnalisée:**\n`;
-      result += `   Utilisez action_create avec les paramètres souhaités\n`;
+      result += `💡 **Pour créer une action personnalisée:**\\n`;
+      result += `   Utilisez action_create avec les paramètres souhaités\\n`;
       
       return result;
     } catch (error: any) {
@@ -177,11 +175,9 @@ const actionCreate: ToolDefinition = {
     { name: 'active', type: 'number', description: 'Active status (1=active, 0=inactive)', required: false }
   ],
   handler: async (params: any) => {
-    const client: XiboClient = params._xiboClient;
-    
     try {
       const actionName = params.name.toLowerCase().replace(/\s+/g, '_');
-      const triggers = params.triggers.split(',').map(t => t.trim());
+      const triggers = params.triggers.split(',').map((t: string) => t.trim());
       const active = params.active !== 0; // Default to active
       
       // Validate action type
@@ -192,7 +188,7 @@ const actionCreate: ToolDefinition = {
       
       // Validate triggers
       const validTriggers = ['time', 'date', 'event', 'manual', 'interval', 'weather', 'threshold'];
-      const invalidTriggers = triggers.filter(trigger => !validTriggers.includes(trigger));
+      const invalidTriggers = triggers.filter((trigger: string) => !validTriggers.includes(trigger));
       if (invalidTriggers.length > 0) {
         return `❌ Déclencheurs invalides: ${invalidTriggers.join(', ')}. Disponibles: ${validTriggers.join(', ')}`;
       }
@@ -214,17 +210,17 @@ const actionCreate: ToolDefinition = {
       };
       
       // Since Xibo doesn't have a direct automation API, simulate creation
-      let result = `🤖 **Action d'automatisation créée**\n\n`;
-      result += `📋 **Configuration:**\n`;
-      result += `   ID: ${actionConfig.id}\n`;
-      result += `   Nom: ${actionConfig.displayName}\n`;
-      result += `   Code: \`${actionConfig.name}\`\n`;
-      result += `   Type: ${actionConfig.actionType}\n`;
-      result += `   Statut: ${actionConfig.active ? '🟢 Active' : '⚪ Inactive'}\n\n`;
+      let result = `🤖 **Action d'automatisation créée**\\n\\n`;
+      result += `📋 **Configuration:**\\n`;
+      result += `   ID: ${actionConfig.id}\\n`;
+      result += `   Nom: ${actionConfig.displayName}\\n`;
+      result += `   Code: \`${actionConfig.name}\`\\n`;
+      result += `   Type: ${actionConfig.actionType}\\n`;
+      result += `   Statut: ${actionConfig.active ? '🟢 Active' : '⚪ Inactive'}\\n\\n`;
       
-      result += `🔄 **Déclencheurs configurés (${triggers.length}):**\n`;
-      triggers.forEach((trigger: string, index: number) => {
-        const triggerDescriptions: any = {
+      result += `🔄 **Déclencheurs configurés (${triggers.length}):**\\n`;
+      triggers.forEach((trigger: string) => {
+        const triggerDescriptions: Record<string, string> = {
           'time': 'Heure spécifique (ex: 09:00)',
           'date': 'Date spécifique (ex: 2024-12-25)',
           'event': 'Événement système (ex: display.connect)',
@@ -235,10 +231,10 @@ const actionCreate: ToolDefinition = {
         };
         
         const description = triggerDescriptions[trigger] || trigger;
-        result += `   ${index + 1}. **${trigger}** - ${description}\n`;
+        result += `   **${trigger}** - ${description}\\n`;
       });
       
-      result += `\n🎯 **Cible:** ${params.targetType}\n\n`;
+      result += `\\n🎯 **Cible:** ${params.targetType}\\n\\n`;
       
       return result;
     } catch (error: any) {
