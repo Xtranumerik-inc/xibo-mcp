@@ -5,8 +5,12 @@
  * @author Xtranumerik Inc.
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Colors for console output
 const colors = {
@@ -37,8 +41,11 @@ async function validateTools() {
     try {
         console.log('\n🧪 Validation des outils MCP Xibo...\n');
         
+        // Get the project root directory
+        const projectRoot = path.join(__dirname, '..');
+        
         // Check if dist/index.js exists
-        const distIndexPath = path.join(process.cwd(), 'dist', 'index.js');
+        const distIndexPath = path.join(projectRoot, 'dist', 'index.js');
         if (!fs.existsSync(distIndexPath)) {
             logError('Le fichier dist/index.js est introuvable. Compilation échouée.');
             return false;
@@ -46,7 +53,7 @@ async function validateTools() {
         logSuccess('Fichier principal compilé trouvé');
         
         // Check source files
-        const srcToolsPath = path.join(process.cwd(), 'src', 'tools');
+        const srcToolsPath = path.join(projectRoot, 'src', 'tools');
         if (!fs.existsSync(srcToolsPath)) {
             logError('Le répertoire src/tools est introuvable');
             return false;
@@ -86,8 +93,8 @@ async function validateTools() {
             logWarning(`Fichiers vides détectés (seront ignorés): ${emptyFiles.join(', ')}`);
         }
         
-        // Expected tool count (115 active tools, 2 temporarily disabled)
-        const expectedActiveTools = 20; // Adjusted for actual count
+        // Expected tool count (adjusted for actual implementation)
+        const expectedActiveTools = 20;
         const actualActiveFiles = activeToolFiles.length;
         const actualDisabledFiles = disabledFiles.length;
         
