@@ -45,10 +45,10 @@ import { ToolDefinition } from './types.js';
 // ASCII Art Logo - Enhanced
 const LOGO = `
 \u001b[36m __  ___                                           _ _    
- \\\\ \\\\/ / |_ _ __ __ _ _ __  _   _ _ __ ___   ___ _ __(_) | __
-  \\\\  /| __| '__/ _\\` | '_ \\\\| | | | '_ \\` _ \\\\ / _ \\\\ '__| | |/ /
-  /  \\\\| |_| | | (_| | | | | |_| | | | | | |  __/ |  | |   < 
- /_/\\\\_\\\\\\\\__|_|  \\\\__,_|_| |_|\\\\__,_|_| |_| |_|\\\\___|_|  |_|_|\\\\_\\\\
+ \\ \\/ / |_ _ __ __ _ _ __  _   _ _ __ ___   ___ _ __(_) | __
+  \\  /| __| '__/ _\` | '_ \\| | | | '_ \` _ \\ / _ \\ '__| | |/ /
+  /  \\| |_| | | (_| | | | | |_| | | | | | |  __/ |  | |   < 
+ /_/\\_\\\\__|_|  \\__,_|_| |_|\\__,_|_| |_| |_|\\___|_|  |_|_|\\_\\
 \u001b[0m                                                            
 \u001b[32m            MCP Server for Xibo Digital Signage
             Professional Edition v2.0.0 by Xtranumerik Inc.
@@ -101,7 +101,7 @@ class XiboMCPServer {
       { name: 'Campaigns', tools: campaignTools, count: campaignTools.length, description: 'Campagnes publicitaires' },
       { name: 'Playlists', tools: playlistTools, count: playlistTools.length, description: 'Listes de lecture dynamiques' },
       { name: 'Schedules', tools: scheduleTools, count: scheduleTools.length, description: 'Programmation et calendrier' },
-      { name: 'Display Groups', tools: displayGroupTools, count: displayGroupTools.length, description: 'Groupes d\\'écrans' },
+      { name: 'Display Groups', tools: displayGroupTools, count: displayGroupTools.length, description: 'Groupes d\'écrans' },
       { name: 'Broadcasting', tools: broadcastTools, count: broadcastTools.length, description: 'Diffusion intelligente géo-ciblée' }
     ];
 
@@ -112,7 +112,7 @@ class XiboMCPServer {
       { name: 'Statistics & Reports', tools: statisticsTools, count: statisticsTools.length, description: 'Analytics et rapports détaillés', oauth: true },
       { name: 'Datasets', tools: datasetTools, count: datasetTools.length, description: 'Données dynamiques et synchronisation', oauth: true },
       { name: 'Templates & Widgets', tools: templateTools, count: templateTools.length, description: 'Templates avancés et widgets', oauth: true },
-      { name: 'Notifications & Alerts', tools: notificationTools, count: notificationTools.length, description: 'Alertes d\\'urgence et notifications', oauth: true },
+      { name: 'Notifications & Alerts', tools: notificationTools, count: notificationTools.length, description: 'Alertes d\'urgence et notifications', oauth: true },
       { name: 'System Configuration', tools: systemTools, count: systemTools.length, description: 'Configuration système avancée', oauth: true },
       { name: 'Transitions & Effects', tools: transitionTools, count: transitionTools.length, description: 'Effets visuels professionnels', oauth: true },
       { name: 'Sync & Integrations', tools: syncTools, count: syncTools.length, description: 'Synchronisation multi-CMS', oauth: true },
@@ -281,14 +281,14 @@ class XiboMCPServer {
       console.log('   📊 "Montre-moi les statistiques de mes écrans de Montréal"');
       console.log('   📅 "Programme cette campagne pour demain matin de 9h à 17h"');
       console.log('   🎨 "Crée une mise en page avec des transitions élégantes"');
-      console.log('   🚨 "Diffuse cette alerte d\\'urgence dans la région de Québec"');
+      console.log('   🚨 "Diffuse cette alerte d\'urgence dans la région de Québec"');
       console.log('   🍽️  "Crée un menu board pour mon restaurant avec prix dynamiques"');
       console.log('   🤖 "Configure une automatisation pour les alertes météo"');
       
       console.log('\\n🎯 Fonctionnalités professionnelles disponibles:');
       console.log('   🌍 Diffusion intelligente avec filtres géographiques');
       console.log('   📈 Analytics et rapports détaillés');
-      console.log('   🚨 Alertes d\\'urgence géo-ciblées');
+      console.log('   🚨 Alertes d\'urgence géo-ciblées');
       console.log('   👥 Gestion avancée des utilisateurs et permissions');
       console.log('   🍽️  Menu boards dynamiques pour restaurants');
       console.log('   🔄 Synchronisation multi-CMS');
