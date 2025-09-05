@@ -16,8 +16,6 @@ const transitionList: ToolDefinition = {
     { name: 'type', type: 'string', description: 'Filter by transition type: in, out, both', required: false }
   ],
   handler: async (params: any) => {
-    const client: XiboClient = params._xiboClient;
-    
     try {
       // Get transitions from system info or predefined list
       const predefinedTransitions = {
@@ -43,31 +41,31 @@ const transitionList: ToolDefinition = {
         ]
       };
 
-      let result = `🎭 **Transitions disponibles**\n\n`;
+      let result = `🎭 **Transitions disponibles**\\n\\n`;
       
       if (!params.type || params.type === 'in' || params.type === 'both') {
-        result += `➡️ **Transitions d'entrée (${predefinedTransitions.in.length}):**\n`;
+        result += `➡️ **Transitions d'entrée (${predefinedTransitions.in.length}):**\\n`;
         predefinedTransitions.in.forEach((transition: any, index: number) => {
-          result += `   ${index + 1}. **${transition.displayName}**\n`;
-          result += `      🔧 Code: \`${transition.name}\`\n`;
-          result += `      ⏱️  Durée: ${transition.duration}ms\n\n`;
+          result += `   ${index + 1}. **${transition.displayName}**\\n`;
+          result += `      🔧 Code: \`${transition.name}\`\\n`;
+          result += `      ⏱️  Durée: ${transition.duration}ms\\n\\n`;
         });
       }
       
       if (!params.type || params.type === 'out' || params.type === 'both') {
-        result += `⬅️ **Transitions de sortie (${predefinedTransitions.out.length}):**\n`;
+        result += `⬅️ **Transitions de sortie (${predefinedTransitions.out.length}):**\\n`;
         predefinedTransitions.out.forEach((transition: any, index: number) => {
-          result += `   ${index + 1}. **${transition.displayName}**\n`;
-          result += `      🔧 Code: \`${transition.name}\`\n`;
-          result += `      ⏱️  Durée: ${transition.duration}ms\n\n`;
+          result += `   ${index + 1}. **${transition.displayName}**\\n`;
+          result += `      🔧 Code: \`${transition.name}\`\\n`;
+          result += `      ⏱️  Durée: ${transition.duration}ms\\n\\n`;
         });
       }
       
-      result += `💡 **Conseils d'utilisation:**\n`;
-      result += `   - Les transitions courtes (600ms) sont plus dynamiques\n`;
-      result += `   - Les transitions longues (1200ms) sont plus élégantes\n`;
-      result += `   - Combinez entrée et sortie pour des effets fluides\n`;
-      result += `   - Évitez trop d'effets sur un même écran\n`;
+      result += `💡 **Conseils d'utilisation:**\\n`;
+      result += `   - Les transitions courtes (600ms) sont plus dynamiques\\n`;
+      result += `   - Les transitions longues (1200ms) sont plus élégantes\\n`;
+      result += `   - Combinez entrée et sortie pour des effets fluides\\n`;
+      result += `   - Évitez trop d'effets sur un même écran\\n`;
       
       return result;
     } catch (error: any) {
@@ -153,41 +151,41 @@ const transitionApply: ToolDefinition = {
         }
       }
       
-      let result = `🎭 **Transitions appliquées**\n\n`;
-      result += `📋 **Configuration:**\n`;
-      result += `   Layout: ${layout.layout} (${params.layoutId})\n`;
-      result += `   Régions ciblées: ${targetRegions.length}\n`;
+      let result = `🎭 **Transitions appliquées**\\n\\n`;
+      result += `📋 **Configuration:**\\n`;
+      result += `   Layout: ${layout.layout} (${params.layoutId})\\n`;
+      result += `   Régions ciblées: ${targetRegions.length}\\n`;
       
       if (params.transitionIn) {
-        result += `   ➡️  Entrée: ${params.transitionIn}\n`;
+        result += `   ➡️  Entrée: ${params.transitionIn}\\n`;
       }
       if (params.transitionOut) {
-        result += `   ⬅️  Sortie: ${params.transitionOut}\n`;
+        result += `   ⬅️  Sortie: ${params.transitionOut}\\n`;
       }
       
-      result += `   ⏱️  Durée: ${params.duration || 1000}ms\n\n`;
+      result += `   ⏱️  Durée: ${params.duration || 1000}ms\\n\\n`;
       
       const successful = results.filter(r => r.success);
       const failed = results.filter(r => !r.success);
       
-      result += `📊 **Résumé:**\n`;
-      result += `   ✅ Succès: ${successful.length}\n`;
-      result += `   ❌ Échecs: ${failed.length}\n\n`;
+      result += `📊 **Résumé:**\\n`;
+      result += `   ✅ Succès: ${successful.length}\\n`;
+      result += `   ❌ Échecs: ${failed.length}\\n\\n`;
       
       if (successful.length > 0) {
-        result += `✅ **Régions mises à jour:**\n`;
+        result += `✅ **Régions mises à jour:**\\n`;
         successful.forEach((item: any, index: number) => {
-          result += `   ${index + 1}. ${item.name}\n`;
+          result += `   ${index + 1}. ${item.name}\\n`;
         });
-        result += '\n';
+        result += '\\n';
       }
       
       if (failed.length > 0) {
-        result += `❌ **Échecs:**\n`;
+        result += `❌ **Échecs:**\\n`;
         failed.forEach((item: any, index: number) => {
-          result += `   ${index + 1}. ${item.name}: ${item.error}\n`;
+          result += `   ${index + 1}. ${item.name}: ${item.error}\\n`;
         });
-        result += '\n';
+        result += '\\n';
       }
       
       result += `💡 **Prochaine étape:** Publiez le layout pour voir les transitions en action`;
@@ -238,7 +236,7 @@ const effectFade: ToolDefinition = {
       
       const result = await transitionApply.handler(applyParams);
       
-      return `🌫️ **Effet de fondu appliqué**\n\n` + result;
+      return `🌫️ **Effet de fondu appliqué**\\n\\n` + result;
     } catch (error: any) {
       return `Erreur lors de l'application de l'effet de fondu: ${error.message}`;
     }
@@ -273,7 +271,7 @@ const effectSlide: ToolDefinition = {
       let transitionOut = null;
       
       if (slideType === 'in' || slideType === 'both') {
-        const directionMap: any = {
+        const directionMap: Record<string, string> = {
           'left': 'slideInLeft',
           'right': 'slideInRight', 
           'top': 'slideInTop',
@@ -283,7 +281,7 @@ const effectSlide: ToolDefinition = {
       }
       
       if (slideType === 'out' || slideType === 'both') {
-        const directionMap: any = {
+        const directionMap: Record<string, string> = {
           'left': 'slideOutLeft',
           'right': 'slideOutRight',
           'top': 'slideOutTop', 
@@ -303,7 +301,7 @@ const effectSlide: ToolDefinition = {
       
       const result = await transitionApply.handler(applyParams);
       
-      return `📱 **Effet de glissement appliqué (${direction})**\n\n` + result;
+      return `📱 **Effet de glissement appliqué (${direction})**\\n\\n` + result;
     } catch (error: any) {
       return `Erreur lors de l'application de l'effet de glissement: ${error.message}`;
     }
@@ -330,7 +328,7 @@ const effectZoom: ToolDefinition = {
       // Adjust duration based on intensity
       let duration = params.duration;
       if (!duration) {
-        const durationMap: any = {
+        const durationMap: Record<string, number> = {
           'subtle': 400,
           'normal': 600,
           'dramatic': 1000
@@ -359,7 +357,7 @@ const effectZoom: ToolDefinition = {
       
       const result = await transitionApply.handler(applyParams);
       
-      return `🔍 **Effet de zoom appliqué (${intensity})**\n\n` + result;
+      return `🔍 **Effet de zoom appliqué (${intensity})**\\n\\n` + result;
     } catch (error: any) {
       return `Erreur lors de l'application de l'effet de zoom: ${error.message}`;
     }
@@ -390,7 +388,7 @@ const resolutionList: ToolDefinition = {
         { name: 'Square 1080x1080', width: 1080, height: 1080, ratio: '1:1' }
       ];
 
-      let result = `📺 **Résolutions disponibles**\n\n`;
+      let result = `📺 **Résolutions disponibles**\\n\\n`;
       
       if (params.displayId) {
         // Get specific display information
@@ -398,39 +396,39 @@ const resolutionList: ToolDefinition = {
           const displayResponse = await client.get(`/display/${params.displayId}`);
           const display = displayResponse.data;
           
-          result += `🎯 **Écran ciblé:** ${display.display}\n`;
-          result += `   📐 Résolution actuelle: ${display.width || 'N/A'} x ${display.height || 'N/A'}\n`;
-          result += `   📊 Status: ${display.licensed ? '✅ Licencié' : '❌ Non licencié'}\n`;
-          result += `   🔌 En ligne: ${display.loggedIn ? '✅ Oui' : '❌ Non'}\n\n`;
-        } catch (error) {
-          result += `⚠️ **Impossible de récupérer les infos de l'écran ${params.displayId}**\n\n`;
+          result += `🎯 **Écran ciblé:** ${display.display}\\n`;
+          result += `   📐 Résolution actuelle: ${display.width || 'N/A'} x ${display.height || 'N/A'}\\n`;
+          result += `   📊 Status: ${display.licensed ? '✅ Licencié' : '❌ Non licencié'}\\n`;
+          result += `   🔌 En ligne: ${display.loggedIn ? '✅ Oui' : '❌ Non'}\\n\\n`;
+        } catch {
+          result += `⚠️ **Impossible de récupérer les infos de l'écran ${params.displayId}**\\n\\n`;
         }
       }
       
-      result += `📋 **Résolutions standards:**\n`;
+      result += `📋 **Résolutions standards:**\\n`;
       standardResolutions.forEach((res: any, index: number) => {
-        result += `   ${index + 1}. **${res.name}**\n`;
-        result += `      📐 ${res.width} x ${res.height} (${res.ratio})\n`;
+        result += `   ${index + 1}. **${res.name}**\\n`;
+        result += `      📐 ${res.width} x ${res.height} (${res.ratio})\\n`;
         
         // Add usage recommendations
         if (res.ratio === '16:9') {
-          result += `      💡 Idéal pour: Écrans horizontaux, vidéos\n`;
+          result += `      💡 Idéal pour: Écrans horizontaux, vidéos\\n`;
         } else if (res.ratio === '9:16') {
-          result += `      💡 Idéal pour: Écrans verticaux, portraits\n`;
+          result += `      💡 Idéal pour: Écrans verticaux, portraits\\n`;
         } else if (res.ratio === '21:9') {
-          result += `      💡 Idéal pour: Écrans ultra-larges\n`;
+          result += `      💡 Idéal pour: Écrans ultra-larges\\n`;
         } else if (res.ratio === '1:1') {
-          result += `      💡 Idéal pour: Contenus carrés, réseaux sociaux\n`;
+          result += `      💡 Idéal pour: Contenus carrés, réseaux sociaux\\n`;
         }
         
-        result += '\n';
+        result += '\\n';
       });
       
-      result += `🔧 **Configuration recommandée pour Québec/Montréal:**\n`;
-      result += `   • Écrans intérieurs: 1920x1080 (Full HD)\n`;
-      result += `   • Écrans extérieurs: 3840x2160 (4K)\n`;
-      result += `   • Totems verticaux: 1080x1920 (Portrait)\n`;
-      result += `   • Écrans ultra-larges: 3440x1440\n`;
+      result += `🔧 **Configuration recommandée:**\\n`;
+      result += `   • Écrans intérieurs: 1920x1080 (Full HD)\\n`;
+      result += `   • Écrans extérieurs: 3840x2160 (4K)\\n`;
+      result += `   • Totems verticaux: 1080x1920 (Portrait)\\n`;
+      result += `   • Écrans ultra-larges: 3440x1440\\n`;
       
       return result;
     } catch (error: any) {
@@ -478,13 +476,13 @@ const resolutionSet: ToolDefinition = {
         const ratioW = params.width / divisor;
         const ratioH = params.height / divisor;
         
-        let result = `📺 **Résolution mise à jour**\n\n`;
-        result += `📋 **Layout:** ${layout.layout} (${params.layoutId})\n`;
-        result += `📐 **Nouvelle résolution:** ${params.width} x ${params.height}\n`;
-        result += `📊 **Ratio:** ${ratioW}:${ratioH}\n`;
+        let result = `📺 **Résolution mise à jour**\\n\\n`;
+        result += `📋 **Layout:** ${layout.layout} (${params.layoutId})\\n`;
+        result += `📐 **Nouvelle résolution:** ${params.width} x ${params.height}\\n`;
+        result += `📊 **Ratio:** ${ratioW}:${ratioH}\\n`;
         
         if (params.backgroundColor) {
-          result += `🎨 **Fond:** ${params.backgroundColor}\n`;
+          result += `🎨 **Fond:** ${params.backgroundColor}\\n`;
         }
         
         // Add resolution category
@@ -495,13 +493,13 @@ const resolutionSet: ToolDefinition = {
         else if (params.width === 1080 && params.height === 1920) category = 'Portrait 1080p';
         else if (params.width === 2560 && params.height === 1440) category = '2K (1440p)';
         
-        result += `🏷️ **Catégorie:** ${category}\n\n`;
+        result += `🏷️ **Catégorie:** ${category}\\n\\n`;
         
-        result += `✅ **Changements appliqués avec succès**\n`;
-        result += `💡 **Prochaines étapes:**\n`;
-        result += `   1. Vérifiez les régions du layout\n`;
-        result += `   2. Ajustez le contenu si nécessaire\n`;
-        result += `   3. Publiez le layout\n`;
+        result += `✅ **Changements appliqués avec succès**\\n`;
+        result += `💡 **Prochaines étapes:**\\n`;
+        result += `   1. Vérifiez les régions du layout\\n`;
+        result += `   2. Ajustez le contenu si nécessaire\\n`;
+        result += `   3. Publiez le layout\\n`;
         
         return result;
       } else {
@@ -511,29 +509,29 @@ const resolutionSet: ToolDefinition = {
         const ratioW = params.width / divisor;
         const ratioH = params.height / divisor;
         
-        let result = `📺 **Configuration de résolution**\n\n`;
-        result += `📐 **Résolution:** ${params.width} x ${params.height}\n`;
-        result += `📊 **Ratio:** ${ratioW}:${ratioH}\n`;
+        let result = `📺 **Configuration de résolution**\\n\\n`;
+        result += `📐 **Résolution:** ${params.width} x ${params.height}\\n`;
+        result += `📊 **Ratio:** ${ratioW}:${ratioH}\\n`;
         
         // Resolution recommendations
-        result += `\n💡 **Recommandations pour cette résolution:**\n`;
+        result += `\\n💡 **Recommandations pour cette résolution:**\\n`;
         
         if (params.width >= 3840) {
-          result += `   🎯 Qualité: Ultra haute définition (4K+)\n`;
-          result += `   📺 Usage: Écrans premium, zones VIP\n`;
-          result += `   ⚡ Performance: Nécessite matériel puissant\n`;
+          result += `   🎯 Qualité: Ultra haute définition (4K+)\\n`;
+          result += `   📺 Usage: Écrans premium, zones VIP\\n`;
+          result += `   ⚡ Performance: Nécessite matériel puissant\\n`;
         } else if (params.width >= 1920) {
-          result += `   🎯 Qualité: Haute définition\n`;
-          result += `   📺 Usage: Écrans standard, polyvalent\n`;
-          result += `   ⚡ Performance: Équilibré\n`;
+          result += `   🎯 Qualité: Haute définition\\n`;
+          result += `   📺 Usage: Écrans standard, polyvalent\\n`;
+          result += `   ⚡ Performance: Équilibré\\n`;
         } else {
-          result += `   🎯 Qualité: Définition standard\n`;
-          result += `   📺 Usage: Écrans économiques, affichage simple\n`;
-          result += `   ⚡ Performance: Faible consommation\n`;
+          result += `   🎯 Qualité: Définition standard\\n`;
+          result += `   📺 Usage: Écrans économiques, affichage simple\\n`;
+          result += `   ⚡ Performance: Faible consommation\\n`;
         }
         
-        result += `\n🔧 **Pour appliquer cette résolution:**\n`;
-        result += `   Utilisez layoutId pour mettre à jour un layout existant\n`;
+        result += `\\n🔧 **Pour appliquer cette résolution:**\\n`;
+        result += `   Utilisez layoutId pour mettre à jour un layout existant\\n`;
         
         return result;
       }
