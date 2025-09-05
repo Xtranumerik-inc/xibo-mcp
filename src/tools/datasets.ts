@@ -5,7 +5,6 @@
  */
 
 import { XiboClient } from '../xibo-client.js';
-import { Dataset } from '../types.js';
 
 export const datasetTools = [
   {
