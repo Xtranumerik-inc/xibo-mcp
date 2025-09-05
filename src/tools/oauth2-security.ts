@@ -195,8 +195,10 @@ const oauth2AppDelete: ToolDefinition = {
             }
           }
         }
-      } catch (error) {
+      } catch (error: unknown) {
         // Continue with deletion even if token revocation fails
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        console.warn('Failed to revoke tokens:', errorMessage);
       }
       
       await client.deleteApplication(params.clientId);
@@ -570,13 +572,15 @@ const sessionManage: ToolDefinition = {
                 if (activeTokens.length > 0) {
                   result += `   ${app.name}: ${activeTokens.length} tokens actifs\n`;
                 }
-              } catch (error) {
+              } catch (error: unknown) {
                 // Skip apps without tokens
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                console.warn('Failed to get tokens for app:', errorMessage);
               }
             }
             result += `\n**Total estimé de sessions actives:** ${totalActiveSessions}\n`;
             
-          } catch (error) {
+          } catch (error: any) {
             result += `Erreur lors de la récupération des tokens: ${error.message}\n`;
           }
           break;
@@ -599,7 +603,7 @@ const sessionManage: ToolDefinition = {
               result += `      IP: ${log.ip || 'N/A'}\n`;
             });
             
-          } catch (error) {
+          } catch (error: any) {
             result += `Impossible de récupérer l'activité de l'utilisateur: ${error.message}\n`;
           }
           break;
