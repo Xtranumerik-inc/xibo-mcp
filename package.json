@@ -1,7 +1,7 @@
 {
   "name": "@xtranumerik/xibo-mcp",
   "version": "2.0.0",
-  "description": "Professional MCP server for Xibo Digital Signage CMS - Complete 117-tool API integration with advanced Quebec/Montreal features by Xtranumerik Inc.",
+  "description": "Professional MCP server for Xibo Digital Signage CMS - Complete 117-tool API integration with advanced geographic filtering features by Xtranumerik Inc.",
   "author": "Xtranumerik Inc.",
   "license": "MIT",
   "main": "dist/index.js",
@@ -27,15 +27,12 @@
     "xtranumerik",
     "api",
     "oauth",
-    "quebec",
-    "montreal",
     "geographic-filtering",
     "emergency-alerts",
     "menu-boards",
     "automation",
     "analytics",
     "professional",
-    "french-canadian",
     "bilingual"
   ],
   "dependencies": {
@@ -47,8 +44,7 @@
     "chalk": "^5.3.0",
     "inquirer": "^9.2.15",
     "ora": "^8.0.1",
-    "node-cron": "^3.0.3",
-    "crypto": "^1.0.1"
+    "node-cron": "^3.0.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
