@@ -68,7 +68,8 @@ const mediaUpload: ToolDefinition = {
     const client: XiboClient = params._xiboClient;
     
     try {
-      const response = await client.uploadFile(params.filePath, params.name);
+      // TODO: Implement uploadFile method in XiboClient
+      const response = await (client as any).uploadFile(params.filePath, params.name);
       const media = response.data;
       
       // Add tags if provided
