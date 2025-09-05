@@ -60,7 +60,7 @@ async function promptBasicConfig() {
           return 'Please enter a valid URL (e.g., https://your-xibo.com)';
         }
       },
-      filter: (input) => input.replace(/\\/$/, '') // Remove trailing slash
+      filter: (input) => input.replace(/\/$/, '') // Remove trailing slash - Fixed regex
     },
     {
       type: 'input',
@@ -103,7 +103,7 @@ DEFAULT_TAGS=publicitaire,information,urgence,promotion
 
 # MCP Server Configuration
 MCP_SERVER_NAME=xibo-mcp
-MCP_SERVER_VERSION=1.0.0
+MCP_SERVER_VERSION=2.0.0
 MCP_SERVER_PORT=3000
 
 # Logging
@@ -138,8 +138,9 @@ function showSummary(config, envPath) {
   console.log('   1. Review your .env file');
   console.log('   2. Run: npm run build');
   console.log('   3. Start the server: npm start');
-  console.log('   4. Configure Claude Desktop');
+  console.log('   4. Configure Claude Desktop with: npm run configure-claude');
   console.log();
+  console.log(chalk.yellow('🍁 Quebec/Montreal optimizations enabled!'));
   console.log(chalk.yellow('💡 Need help? Check the README.md file'));
 }
 
