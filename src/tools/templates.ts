@@ -4,7 +4,7 @@
  * @author Xtranumerik Inc.
  */
 
-import { ToolDefinition, Template, Widget } from '../types.js';
+import { ToolDefinition, Template } from '../types.js';
 import XiboClient from '../xibo-client.js';
 
 // ========== TEMPLATE MANAGEMENT TOOLS ==========
@@ -38,23 +38,23 @@ const templateList: ToolDefinition = {
         return 'Aucun template trouvé.';
       }
 
-      let result = `🎨 **Templates disponibles: ${templates.length}/${total}**\n\n`;
+      let result = `🎨 **Templates disponibles: ${templates.length}/${total}**\\n\\n`;
       
-      templates.forEach((template: any, index: number) => {
-        result += `**${index + 1}. ${template.template}** (ID: ${template.templateId})\n`;
-        result += `   📝 Description: ${template.description || 'Aucune description'}\n`;
-        result += `   📐 Résolution: ${template.width}x${template.height}\n`;
+      templates.forEach((template: any) => {
+        result += `**${template.template}** (ID: ${template.templateId})\\n`;
+        result += `   📝 Description: ${template.description || 'Aucune description'}\\n`;
+        result += `   📐 Résolution: ${template.width}x${template.height}\\n`;
         
         if (template.tags) {
-          result += `   🏷️  Tags: ${template.tags}\n`;
+          result += `   🏷️  Tags: ${template.tags}\\n`;
         }
         
         if (template.thumbnail) {
-          result += `   🖼️  Aperçu disponible: Oui\n`;
+          result += `   🖼️  Aperçu disponible: Oui\\n`;
         }
         
-        result += `   📅 Créé: ${new Date(template.createdDt).toLocaleDateString('fr-FR')}\n`;
-        result += '\n';
+        result += `   📅 Créé: ${new Date(template.createdDt).toLocaleDateString('fr-FR')}\\n`;
+        result += '\\n';
       });
 
       return result;
@@ -118,22 +118,22 @@ const templateExport: ToolDefinition = {
       const exportResponse = await client.get(`/template/${params.templateId}/export`);
       const exportData = exportResponse.data;
       
-      let result = `📤 **Export du template "${template.template}"**\n\n`;
-      result += `📊 **Informations:**\n`;
-      result += `   ID: ${template.templateId}\n`;
-      result += `   Résolution: ${template.width}x${template.height}\n`;
-      result += `   Créé: ${new Date(template.createdDt).toLocaleDateString('fr-FR')}\n\n`;
+      let result = `📤 **Export du template "${template.template}"**\\n\\n`;
+      result += `📊 **Informations:**\\n`;
+      result += `   ID: ${template.templateId}\\n`;
+      result += `   Résolution: ${template.width}x${template.height}\\n`;
+      result += `   Créé: ${new Date(template.createdDt).toLocaleDateString('fr-FR')}\\n\\n`;
       
       if (format === 'xml') {
-        result += `📄 **Template XML:**\n`;
-        result += '```xml\n';
+        result += `📄 **Template XML:**\\n`;
+        result += '```xml\\n';
         result += exportData.template || 'Données XML non disponibles';
-        result += '\n```\n';
+        result += '\\n```\\n';
       } else {
-        result += `📄 **Template JSON:**\n`;
-        result += '```json\n';
+        result += `📄 **Template JSON:**\\n`;
+        result += '```json\\n';
         result += JSON.stringify(exportData, null, 2);
-        result += '\n```\n';
+        result += '\\n```\\n';
       }
       
       return result;
@@ -200,7 +200,7 @@ const widgetList: ToolDefinition = {
         return 'Aucun module/widget trouvé.';
       }
 
-      let result = `🧩 **Modules/Widgets disponibles: ${modules.length}**\n\n`;
+      let result = `🧩 **Modules/Widgets disponibles: ${modules.length}**\\n\\n`;
       
       // Group by category
       const categories: any = {};
@@ -212,18 +212,18 @@ const widgetList: ToolDefinition = {
       });
       
       Object.entries(categories).forEach(([category, categoryModules]: [string, any]) => {
-        result += `📂 **${category}:**\n`;
+        result += `📂 **${category}:**\\n`;
         
-        categoryModules.forEach((module: any, index: number) => {
+        categoryModules.forEach((module: any) => {
           const status = module.enabled === 1 ? '✅' : '❌';
-          result += `   ${status} ${module.name} (${module.type})\n`;
+          result += `   ${status} ${module.name} (${module.type})\\n`;
           
           if (module.description) {
-            result += `      📝 ${module.description}\n`;
+            result += `      📝 ${module.description}\\n`;
           }
         });
         
-        result += '\n';
+        result += '\\n';
       });
 
       return result;
@@ -263,11 +263,11 @@ const widgetConfigure: ToolDefinition = {
       
       await client.put(`/playlist/widget/${params.widgetId}`, configData);
       
-      let result = `✅ Widget ${params.widgetId} configuré avec succès\n\n`;
-      result += `🔧 **Paramètres appliqués:**\n`;
+      let result = `✅ Widget ${params.widgetId} configuré avec succès\\n\\n`;
+      result += `🔧 **Paramètres appliqués:**\\n`;
       
       Object.entries(configData).forEach(([key, value]) => {
-        result += `   ${key}: ${value}\n`;
+        result += `   ${key}: ${value}\\n`;
       });
       
       return result;
@@ -306,11 +306,11 @@ const widgetWeather: ToolDefinition = {
       const response = await client.post(`/playlist/widget/${params.playlistId}`, widgetData);
       const newWidget = response.data;
       
-      let result = `🌤️  Widget météo créé avec succès (ID: ${newWidget.widgetId})\n\n`;
-      result += `📍 **Configuration:**\n`;
-      result += `   Localisation: ${params.location}\n`;
-      result += `   Unités: ${params.units || 'metric'}\n`;
-      result += `   Durée: ${params.duration || 60} secondes\n`;
+      let result = `🌤️  Widget météo créé avec succès (ID: ${newWidget.widgetId})\\n\\n`;
+      result += `📍 **Configuration:**\\n`;
+      result += `   Localisation: ${params.location}\\n`;
+      result += `   Unités: ${params.units || 'metric'}\\n`;
+      result += `   Durée: ${params.duration || 60} secondes\\n`;
       
       return result;
     } catch (error: any) {
@@ -346,12 +346,12 @@ const widgetStocks: ToolDefinition = {
       const response = await client.post(`/playlist/widget/${params.playlistId}`, widgetData);
       const newWidget = response.data;
       
-      let result = `📈 Widget bourse créé avec succès (ID: ${newWidget.widgetId})\n\n`;
-      result += `💹 **Configuration:**\n`;
-      result += `   Symboles: ${params.symbols}\n`;
-      result += `   Durée: ${params.duration || 30} secondes\n`;
-      result += `   Afficher variations: ${params.showChange !== 0 ? 'Oui' : 'Non'}\n`;
-      result += `   Mise à jour: ${params.updateInterval || 15} minutes\n`;
+      let result = `📈 Widget bourse créé avec succès (ID: ${newWidget.widgetId})\\n\\n`;
+      result += `💹 **Configuration:**\\n`;
+      result += `   Symboles: ${params.symbols}\\n`;
+      result += `   Durée: ${params.duration || 30} secondes\\n`;
+      result += `   Afficher variations: ${params.showChange !== 0 ? 'Oui' : 'Non'}\\n`;
+      result += `   Mise à jour: ${params.updateInterval || 15} minutes\\n`;
       
       return result;
     } catch (error: any) {
@@ -395,13 +395,13 @@ const widgetSocial: ToolDefinition = {
       const response = await client.post(`/playlist/widget/${params.playlistId}`, widgetData);
       const newWidget = response.data;
       
-      let result = `📱 Widget ${params.platform} créé avec succès (ID: ${newWidget.widgetId})\n\n`;
-      result += `🔍 **Configuration:**\n`;
-      result += `   Plateforme: ${params.platform}\n`;
-      result += `   Recherche: #${params.searchTerm}\n`;
-      result += `   Type: ${params.resultType || 'recent'}\n`;
-      result += `   Nombre d'éléments: ${params.numItems || 5}\n`;
-      result += `   Durée: ${params.duration || 45} secondes\n`;
+      let result = `📱 Widget ${params.platform} créé avec succès (ID: ${newWidget.widgetId})\\n\\n`;
+      result += `🔍 **Configuration:**\\n`;
+      result += `   Plateforme: ${params.platform}\\n`;
+      result += `   Recherche: #${params.searchTerm}\\n`;
+      result += `   Type: ${params.resultType || 'recent'}\\n`;
+      result += `   Nombre d'éléments: ${params.numItems || 5}\\n`;
+      result += `   Durée: ${params.duration || 45} secondes\\n`;
       
       return result;
     } catch (error: any) {
@@ -440,7 +440,7 @@ const widgetEmergency: ToolDefinition = {
       const newWidget = response.data;
       
       // Get alert type emoji and color
-      const alertIcons: any = {
+      const alertIcons: Record<string, string> = {
         warning: '⚠️',
         danger: '🚨',
         info: 'ℹ️',
@@ -449,15 +449,15 @@ const widgetEmergency: ToolDefinition = {
       
       const icon = alertIcons[params.alertType || 'warning'] || '⚠️';
       
-      let result = `${icon} Widget d'alerte d'urgence créé avec succès (ID: ${newWidget.widgetId})\n\n`;
-      result += `🚨 **Configuration d'urgence:**\n`;
-      result += `   Titre: ${params.alertTitle}\n`;
-      result += `   Message: ${params.alertMessage}\n`;
-      result += `   Type: ${params.alertType || 'warning'}\n`;
-      result += `   Priorité: ${params.priority || 8}/10\n`;
-      result += `   Durée: ${params.duration ? `${params.duration} secondes` : 'Illimitée'}\n`;
+      let result = `${icon} Widget d'alerte d'urgence créé avec succès (ID: ${newWidget.widgetId})\\n\\n`;
+      result += `🚨 **Configuration d'urgence:**\\n`;
+      result += `   Titre: ${params.alertTitle}\\n`;
+      result += `   Message: ${params.alertMessage}\\n`;
+      result += `   Type: ${params.alertType || 'warning'}\\n`;
+      result += `   Priorité: ${params.priority || 8}/10\\n`;
+      result += `   Durée: ${params.duration ? `${params.duration} secondes` : 'Illimitée'}\\n`;
       
-      result += `\n💡 **Important:** Cette alerte sera affichée selon sa priorité et peut interrompre d'autres contenus.`;
+      result += `\\n💡 **Important:** Cette alerte sera affichée selon sa priorité et peut interrompre d'autres contenus.`;
       
       return result;
     } catch (error: any) {
