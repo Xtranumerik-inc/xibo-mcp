@@ -29,7 +29,7 @@ import { scheduleTools } from './tools/schedules.js';
 import { displayGroupTools } from './tools/display-groups.js';
 import { broadcastTools } from './tools/broadcast.js';
 
-// ========== ADVANCED TOOLS (100+ tools) - OAuth2 Enhanced ==========
+// ========== ADVANCED TOOLS (77 tools) - OAuth2 Enhanced ==========
 import { userTools } from './tools/users.js';
 import { folderTools } from './tools/folders.js';
 import { statisticsTools } from './tools/statistics.js';
@@ -42,24 +42,24 @@ import { syncTools } from './tools/sync.js';
 import { menuboardTools } from './tools/menuboards.js';
 import { automationTools } from './tools/actions.js';
 
-// ========== PROFESSIONAL OAUTH2 TOOLS (40+ tools) ==========
+// ========== PROFESSIONAL OAUTH2 TOOLS (8 tools) ==========
 import { systemAdminTools } from './tools/system-admin.js';
 import { analyticsReportTools } from './tools/analytics-reports.js';
 import { oauth2SecurityTools } from './tools/oauth2-security.js';
 
 import { ToolDefinition, UserPermissionSet } from './types.js';
 
-// ASCII Art Logo - Enhanced
+// ASCII Art Logo - Enhanced with correct count
 const LOGO = `
 \\u001b[36m __  ___                                           _ _    
  \\\\ \\\\/ / |_ _ __ __ _ _ __  _   _ _ __ ___   ___ _ __(_) | __
   \\\\  /| __| '__/ _\` | '_ \\\\| | | | '_ \` _ \\\\ / _ \\\\ '__| | |/ /
   /  \\\\| |_| | | (_| | | | | |_| | | | | | |  __/ |  | |   < 
- /_/\\\\_\\\\\\\\__|_|  \\\\__,_|_| |_|\\\\__,_|_| |_| |_|\\\\___|_|  |_|_|\\\\_\\\\
+ /_/\\\\_\\\\\\\\__|_|  \\\\__,_|_| |_|\\\\__,_|_| |_| |_|\\___|_|  |_|_|\\_\\\\
 \\u001b[0m                                                            
 \\u001b[32m            MCP Server for Xibo Digital Signage
             Professional Edition v2.0.0 by Xtranumerik Inc.
-            Complete OAuth2 + Direct User Authentication - 170+ Tools Available\\u001b[0m
+            Complete OAuth2 + Direct User Authentication - 117 Tools Available\\u001b[0m
 `;
 
 class XiboMCPServer {
@@ -114,9 +114,9 @@ class XiboMCPServer {
   }
 
   private loadAllTools(): void {
-    console.log('🛠️  Loading all MCP tools...');
+    console.log('🛠️  Loading all 117 MCP tools...');
 
-    // Core tool categories (32 original tools)
+    // Core tool categories (32 tools) - Compatible with Client Credentials & Direct User
     const coreToolCategories = [
       { name: 'Displays', tools: displayTools, count: displayTools.length, description: 'Gestion complète des écrans et groupes', icon: '📺' },
       { name: 'Layouts', tools: layoutTools, count: layoutTools.length, description: 'Création et gestion des mises en page', icon: '📄' },
@@ -128,7 +128,7 @@ class XiboMCPServer {
       { name: 'Broadcasting', tools: broadcastTools, count: broadcastTools.length, description: 'Diffusion intelligente géo-ciblée', icon: '📡' }
     ];
 
-    // Advanced tool categories (OAuth2 Required)
+    // Advanced tool categories (77 tools) - OAuth2 Required or Direct User with permissions
     const advancedToolCategories = [
       { name: 'Users & Permissions', tools: userTools, count: userTools.length, description: 'Gestion utilisateurs et permissions', icon: '👥', oauth: true },
       { name: 'Folders & Security', tools: folderTools, count: folderTools.length, description: 'Organisation et sécurité', icon: '📁', oauth: true },
@@ -143,7 +143,7 @@ class XiboMCPServer {
       { name: 'Automation & Workflows', tools: automationTools, count: automationTools.length, description: 'Workflows et automatisation', icon: '🤖', oauth: true }
     ];
 
-    // Professional OAuth2 tool categories (NEW - Complete API Coverage)
+    // Professional OAuth2 tool categories (8 tools) - Complete API Coverage
     const professionalToolCategories = [
       { name: 'System Administration', tools: systemAdminTools, count: systemAdminTools.length, description: 'Administration système complète', icon: '🔧', oauth: true, professional: true },
       { name: 'Analytics & Reports', tools: analyticsReportTools, count: analyticsReportTools.length, description: 'Rapports et analytics avancés', icon: '📈', oauth: true, professional: true },
@@ -151,13 +151,21 @@ class XiboMCPServer {
     ];
 
     // Load all tools into the complete collection
+    let totalToolsLoaded = 0;
     [...coreToolCategories, ...advancedToolCategories, ...professionalToolCategories].forEach(category => {
+      console.log(`   📦 Loading ${category.name}: ${category.count} tools`);
       category.tools.forEach(tool => {
         this.allTools.set(tool.name, tool);
+        totalToolsLoaded++;
       });
     });
 
-    console.log(`✅ Loaded ${this.allTools.size} total tools for dynamic filtering`);
+    console.log(`✅ Loaded ${totalToolsLoaded} total tools for dynamic filtering`);
+    
+    // Ensure we have exactly 117 tools
+    if (totalToolsLoaded !== 117) {
+      console.warn(`⚠️  Expected 117 tools but loaded ${totalToolsLoaded}. Check tool exports.`);
+    }
   }
 
   private async initializeAuthentication(): Promise<void> {
@@ -165,6 +173,7 @@ class XiboMCPServer {
 
     if (isDirectUserMode() && this.directAuth) {
       console.log('🔑 Using Direct User Authentication mode');
+      console.log('   ✅ Compatible with all 117 tools based on user permissions');
       
       const authResult = await this.directAuth.authenticate();
       if (authResult.success) {
@@ -186,6 +195,7 @@ class XiboMCPServer {
       }
     } else {
       console.log('🔑 Using Client Credentials mode');
+      console.log('   ℹ️  Limited to core tools (32) + accessible advanced tools');
       
       // For client credentials, try to detect permissions from API
       try {
@@ -312,6 +322,7 @@ class XiboMCPServer {
 
       try {
         // Pass enhanced clients and config to tool handler
+        // ✅ TOUS les outils reçoivent _directAuth pour compatibilité directe
         const result = await tool.handler({ 
           ...args, 
           _xiboClient: this.xiboClient, 
@@ -384,8 +395,8 @@ class XiboMCPServer {
       console.log(`   🏢 Company: ${this.config.companyName}`);
       console.log(`   🖥️  Server: Xibo MCP Professional v2.0.0`);
       console.log(`   🌐 Xibo API: ${this.config.apiUrl}`);
-      console.log(`   🛠️  Tools Available: ${this.availableTools.size}/${this.allTools.size}`);
-      console.log(`   🔐 Auth Mode: ${authMode === 'direct_user' ? 'Direct User Authentication' : 'Client Credentials'}`);
+      console.log(`   🛠️  Tools Available: ${this.availableTools.size}/117`);
+      console.log(`   🔐 Auth Mode: ${authMode === 'direct_user' ? 'Direct User Authentication ✅' : 'Client Credentials'}`);
       console.log(`   👤 Permission Level: ${this.userPermissions?.level || 'unknown'}`);
       
       // Show available features based on permission level
@@ -439,6 +450,12 @@ class XiboMCPServer {
       console.log('   🍁 Contenu saisonnier adapté aux saisons québécoises');
       console.log('   🍽️  Menus de restaurants dynamiques avec prix en CAD');
       console.log('   🚨 Alertes d\'urgence géo-ciblées pour situations critiques');
+      
+      console.log('\n🔐 Direct User Authentication:');
+      console.log('   ✅ Compatible avec les 117 outils selon vos permissions');
+      console.log('   🔑 Session management automatique avec refresh');
+      console.log('   🛡️  Extraction automatique des permissions utilisateur');
+      console.log('   🍪 Support complet des cookies de session Xibo');
       
       console.log('\n' + '='.repeat(75));
       
