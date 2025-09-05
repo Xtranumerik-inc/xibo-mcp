@@ -306,12 +306,9 @@ const performanceMetrics: ToolDefinition = {
     try {
       const metricsParams: any = {
         period: params.period,
-        aggregation: params.aggregation
+        aggregation: params.aggregation,
+        displayId: params.displayId
       };
-      
-      if (params.displayId) {
-        metricsParams.displayId = params.displayId;
-      }
       
       const metrics = await client.getPerformanceMetrics(params.metric, metricsParams);
       
@@ -438,8 +435,8 @@ const usageStatistics: ToolDefinition = {
           
           if (stats.data.topContent) {
             result += `**🏆 Contenu le plus populaire:**\n`;
-            stats.data.topContent.slice(0, 5).forEach((content: any, index: number) => {
-              result += `   ${index + 1}. ${content.name} (${content.plays} diffusions)\n`;
+            stats.data.topContent.slice(0, 5).forEach((content: any) => {
+              result += `   • ${content.name} (${content.plays} diffusions)\n`;
             });
             result += `\n`;
           }
