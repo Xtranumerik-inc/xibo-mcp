@@ -1,5 +1,6 @@
 /**
- * Xibo API Client with OAuth Authentication - Enhanced User Auth Support
+ * Xibo API Client with OAuth Authentication - Complete OAuth2 API Coverage
+ * Enhanced with all missing API endpoints for comprehensive CMS integration
  * @author Xtranumerik Inc.
  */
 
@@ -7,7 +8,7 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 import FormData from 'form-data';
 import * as fs from 'fs';
 import * as path from 'path';
-import { XiboAuthConfig, XiboTokenResponse, ApiResponse, ApiError } from './types.js';
+import { XiboAuthConfig, XiboTokenResponse, ApiResponse, ApiError, User, UserGroup, SystemInfo, AuditLog, Webhook, Report } from './types.js';
 import { TokenManager } from './auth/token-manager.js';
 
 export class XiboClient {
@@ -329,7 +330,7 @@ export class XiboClient {
     }
   }
 
-  // ========== PUBLIC API METHODS ==========
+  // ========== BASIC HTTP METHODS ==========
 
   /**
    * GET request
@@ -388,6 +389,19 @@ export class XiboClient {
   }
 
   /**
+   * PATCH request for partial updates
+   */
+  async patch<T = any>(endpoint: string, data?: any, config?: any): Promise<ApiResponse<T>> {
+    const response = await this.axiosInstance.patch<T>(endpoint, data, config);
+    return {
+      data: response.data,
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers
+    };
+  }
+
+  /**
    * DELETE request
    */
   async delete<T = any>(endpoint: string, config?: any): Promise<ApiResponse<T>> {
@@ -400,16 +414,371 @@ export class XiboClient {
     };
   }
 
+  // ========== USER MANAGEMENT METHODS ==========
+
   /**
-   * Upload file
+   * Create a new user
    */
-  async uploadFile(endpoint: string, filePath: string, additionalFields?: Record<string, any>): Promise<ApiResponse<any>> {
+  async createUser(userData: Partial<User>): Promise<ApiResponse<User>> {
+    return this.post('/user', userData);
+  }
+
+  /**
+   * Update user information
+   */
+  async updateUser(userId: number, userData: Partial<User>): Promise<ApiResponse<User>> {
+    return this.put(`/user/${userId}`, userData);
+  }
+
+  /**
+   * Delete a user
+   */
+  async deleteUser(userId: number, options?: { deleteAll?: boolean; reassignUserId?: number }): Promise<ApiResponse<void>> {
+    const params = options ? {
+      deleteAll: options.deleteAll ? 1 : 0,
+      reassignUserId: options.reassignUserId
+    } : {};
+    return this.delete(`/user/${userId}`, { params });
+  }
+
+  /**
+   * Get user permissions
+   */
+  async getUserPermissions(userId: number): Promise<ApiResponse<any[]>> {
+    return this.get(`/user/${userId}/permissions`);
+  }
+
+  /**
+   * Set user permissions
+   */
+  async setUserPermissions(userId: number, permissions: any[]): Promise<ApiResponse<void>> {
+    return this.post(`/user/${userId}/permissions`, { permissions });
+  }
+
+  /**
+   * Create user group
+   */
+  async createUserGroup(groupData: Partial<UserGroup>): Promise<ApiResponse<UserGroup>> {
+    return this.post('/group', groupData);
+  }
+
+  /**
+   * Update user group
+   */
+  async updateUserGroup(groupId: number, groupData: Partial<UserGroup>): Promise<ApiResponse<UserGroup>> {
+    return this.put(`/group/${groupId}`, groupData);
+  }
+
+  /**
+   * Delete user group
+   */
+  async deleteUserGroup(groupId: number): Promise<ApiResponse<void>> {
+    return this.delete(`/group/${groupId}`);
+  }
+
+  /**
+   * Add user to group
+   */
+  async addUserToGroup(userId: number, groupId: number): Promise<ApiResponse<void>> {
+    return this.post(`/user/${userId}/group/assign`, { groupId });
+  }
+
+  /**
+   * Remove user from group
+   */
+  async removeUserFromGroup(userId: number, groupId: number): Promise<ApiResponse<void>> {
+    return this.post(`/user/${userId}/group/unassign`, { groupId });
+  }
+
+  // ========== SYSTEM ADMINISTRATION METHODS ==========
+
+  /**
+   * Get system information
+   */
+  async getSystemInfo(): Promise<ApiResponse<SystemInfo>> {
+    return this.get('/about');
+  }
+
+  /**
+   * Get system settings
+   */
+  async getSystemSettings(): Promise<ApiResponse<any>> {
+    return this.get('/settings');
+  }
+
+  /**
+   * Update system settings
+   */
+  async updateSystemSettings(settings: Record<string, any>): Promise<ApiResponse<void>> {
+    return this.put('/settings', settings);
+  }
+
+  /**
+   * Get system maintenance status
+   */
+  async getMaintenanceStatus(): Promise<ApiResponse<any>> {
+    return this.get('/maintenance');
+  }
+
+  /**
+   * Enable maintenance mode
+   */
+  async enableMaintenanceMode(message?: string): Promise<ApiResponse<void>> {
+    return this.post('/maintenance/enable', { message });
+  }
+
+  /**
+   * Disable maintenance mode
+   */
+  async disableMaintenanceMode(): Promise<ApiResponse<void>> {
+    return this.post('/maintenance/disable');
+  }
+
+  /**
+   * Get system logs
+   */
+  async getSystemLogs(params?: any): Promise<ApiResponse<any[]>> {
+    return this.get('/log', params);
+  }
+
+  /**
+   * Clear system logs
+   */
+  async clearSystemLogs(): Promise<ApiResponse<void>> {
+    return this.delete('/log');
+  }
+
+  /**
+   * Run system task
+   */
+  async runSystemTask(taskName: string): Promise<ApiResponse<any>> {
+    return this.post(`/task/${taskName}/run`);
+  }
+
+  /**
+   * Get system tasks status
+   */
+  async getSystemTasks(): Promise<ApiResponse<any[]>> {
+    return this.get('/task');
+  }
+
+  // ========== OAUTH2 APPLICATION MANAGEMENT ==========
+
+  /**
+   * List OAuth2 applications
+   */
+  async listApplications(): Promise<ApiResponse<any[]>> {
+    return this.get('/application');
+  }
+
+  /**
+   * Create OAuth2 application
+   */
+  async createApplication(appData: any): Promise<ApiResponse<any>> {
+    return this.post('/application', appData);
+  }
+
+  /**
+   * Update OAuth2 application
+   */
+  async updateApplication(appId: number, appData: any): Promise<ApiResponse<any>> {
+    return this.put(`/application/${appId}`, appData);
+  }
+
+  /**
+   * Delete OAuth2 application
+   */
+  async deleteApplication(appId: number): Promise<ApiResponse<void>> {
+    return this.delete(`/application/${appId}`);
+  }
+
+  /**
+   * Generate new client secret
+   */
+  async regenerateClientSecret(appId: number): Promise<ApiResponse<{ clientSecret: string }>> {
+    return this.post(`/application/${appId}/regenerate`);
+  }
+
+  /**
+   * List access tokens for application
+   */
+  async listApplicationTokens(appId: number): Promise<ApiResponse<any[]>> {
+    return this.get(`/application/${appId}/tokens`);
+  }
+
+  /**
+   * Revoke access token
+   */
+  async revokeToken(tokenId: string): Promise<ApiResponse<void>> {
+    return this.delete(`/token/${tokenId}`);
+  }
+
+  /**
+   * List OAuth2 scopes
+   */
+  async listOAuthScopes(): Promise<ApiResponse<any[]>> {
+    return this.get('/oauth/scopes');
+  }
+
+  // ========== SECURITY AND AUDIT ==========
+
+  /**
+   * Get audit logs
+   */
+  async getAuditLogs(params?: any): Promise<ApiResponse<AuditLog[]>> {
+    return this.get('/auditlog', params);
+  }
+
+  /**
+   * Get access logs
+   */
+  async getAccessLogs(params?: any): Promise<ApiResponse<any[]>> {
+    return this.get('/log/access', params);
+  }
+
+  /**
+   * Get failed login attempts
+   */
+  async getFailedLogins(params?: any): Promise<ApiResponse<any[]>> {
+    return this.get('/log/login', params);
+  }
+
+  /**
+   * Block IP address
+   */
+  async blockIP(ipAddress: string, reason?: string): Promise<ApiResponse<void>> {
+    return this.post('/security/ip/block', { ip: ipAddress, reason });
+  }
+
+  /**
+   * Unblock IP address
+   */
+  async unblockIP(ipAddress: string): Promise<ApiResponse<void>> {
+    return this.delete(`/security/ip/block/${ipAddress}`);
+  }
+
+  /**
+   * List blocked IPs
+   */
+  async listBlockedIPs(): Promise<ApiResponse<any[]>> {
+    return this.get('/security/ip/blocked');
+  }
+
+  /**
+   * Set rate limit for user
+   */
+  async setUserRateLimit(userId: number, limit: number, windowMinutes: number): Promise<ApiResponse<void>> {
+    return this.post(`/user/${userId}/ratelimit`, { limit, windowMinutes });
+  }
+
+  /**
+   * Get security settings
+   */
+  async getSecuritySettings(): Promise<ApiResponse<any>> {
+    return this.get('/security/settings');
+  }
+
+  /**
+   * Update security settings
+   */
+  async updateSecuritySettings(settings: any): Promise<ApiResponse<void>> {
+    return this.put('/security/settings', settings);
+  }
+
+  // ========== REPORTING AND ANALYTICS ==========
+
+  /**
+   * Generate report
+   */
+  async generateReport(reportType: string, params: any): Promise<ApiResponse<any>> {
+    return this.post(`/report/${reportType}`, params);
+  }
+
+  /**
+   * List available reports
+   */
+  async listReports(): Promise<ApiResponse<Report[]>> {
+    return this.get('/report');
+  }
+
+  /**
+   * Schedule report
+   */
+  async scheduleReport(reportId: number, schedule: any): Promise<ApiResponse<void>> {
+    return this.post(`/report/${reportId}/schedule`, schedule);
+  }
+
+  /**
+   * Get analytics dashboard data
+   */
+  async getAnalyticsDashboard(timeframe?: string): Promise<ApiResponse<any>> {
+    const params = timeframe ? { timeframe } : {};
+    return this.get('/analytics/dashboard', params);
+  }
+
+  /**
+   * Get performance metrics
+   */
+  async getPerformanceMetrics(metric: string, params?: any): Promise<ApiResponse<any>> {
+    return this.get(`/metrics/${metric}`, params);
+  }
+
+  /**
+   * Get usage statistics
+   */
+  async getUsageStats(params?: any): Promise<ApiResponse<any>> {
+    return this.get('/stats/usage', params);
+  }
+
+  // ========== FILE AND FOLDER MANAGEMENT ==========
+
+  /**
+   * Create folder
+   */
+  async createFolder(name: string, parentId?: number): Promise<ApiResponse<any>> {
+    const data = { text: name };
+    if (parentId) data['parentId'] = parentId;
+    return this.post('/folder', data);
+  }
+
+  /**
+   * Update folder
+   */
+  async updateFolder(folderId: number, name: string): Promise<ApiResponse<any>> {
+    return this.put(`/folder/${folderId}`, { text: name });
+  }
+
+  /**
+   * Delete folder
+   */
+  async deleteFolder(folderId: number): Promise<ApiResponse<void>> {
+    return this.delete(`/folder/${folderId}`);
+  }
+
+  /**
+   * Move item to folder
+   */
+  async moveToFolder(itemType: string, itemId: number, folderId: number): Promise<ApiResponse<void>> {
+    return this.put(`/${itemType}/${itemId}`, { folderId });
+  }
+
+  /**
+   * Upload file to library
+   */
+  async uploadFile(filePath: string, additionalFields?: Record<string, any>): Promise<ApiResponse<any>> {
+    return this.uploadFileToEndpoint('/library', filePath, additionalFields);
+  }
+
+  /**
+   * Upload file to specific endpoint
+   */
+  async uploadFileToEndpoint(endpoint: string, filePath: string, additionalFields?: Record<string, any>): Promise<ApiResponse<any>> {
     const formData = new FormData();
     
     // Add the file
     const fileName = path.basename(filePath);
     const fileStream = fs.createReadStream(filePath);
-    formData.append('file', fileStream, fileName);
+    formData.append('files', fileStream, fileName);
     
     // Add additional form fields
     if (additionalFields) {
@@ -437,6 +806,142 @@ export class XiboClient {
       throw error;
     }
   }
+
+  // ========== WEBHOOK MANAGEMENT ==========
+
+  /**
+   * Create webhook
+   */
+  async createWebhook(webhookData: Partial<Webhook>): Promise<ApiResponse<Webhook>> {
+    return this.post('/webhook', webhookData);
+  }
+
+  /**
+   * Update webhook
+   */
+  async updateWebhook(webhookId: number, webhookData: Partial<Webhook>): Promise<ApiResponse<Webhook>> {
+    return this.put(`/webhook/${webhookId}`, webhookData);
+  }
+
+  /**
+   * Delete webhook
+   */
+  async deleteWebhook(webhookId: number): Promise<ApiResponse<void>> {
+    return this.delete(`/webhook/${webhookId}`);
+  }
+
+  /**
+   * Test webhook
+   */
+  async testWebhook(webhookId: number, testData?: any): Promise<ApiResponse<any>> {
+    return this.post(`/webhook/${webhookId}/test`, testData);
+  }
+
+  /**
+   * Get webhook logs
+   */
+  async getWebhookLogs(webhookId: number, params?: any): Promise<ApiResponse<any[]>> {
+    return this.get(`/webhook/${webhookId}/logs`, params);
+  }
+
+  // ========== BACKUP AND RESTORE ==========
+
+  /**
+   * Create system backup
+   */
+  async createBackup(includeMedia: boolean = false): Promise<ApiResponse<any>> {
+    return this.post('/backup', { includeMedia });
+  }
+
+  /**
+   * List available backups
+   */
+  async listBackups(): Promise<ApiResponse<any[]>> {
+    return this.get('/backup');
+  }
+
+  /**
+   * Restore from backup
+   */
+  async restoreBackup(backupId: string): Promise<ApiResponse<void>> {
+    return this.post(`/backup/${backupId}/restore`);
+  }
+
+  /**
+   * Download backup
+   */
+  async downloadBackup(backupId: string): Promise<ApiResponse<any>> {
+    return this.get(`/backup/${backupId}/download`, {}, { responseType: 'stream' });
+  }
+
+  /**
+   * Delete backup
+   */
+  async deleteBackup(backupId: string): Promise<ApiResponse<void>> {
+    return this.delete(`/backup/${backupId}`);
+  }
+
+  // ========== ADVANCED FEATURES ==========
+
+  /**
+   * Get API version info
+   */
+  async getApiVersion(): Promise<ApiResponse<any>> {
+    return this.get('/version');
+  }
+
+  /**
+   * Health check endpoint
+   */
+  async healthCheck(): Promise<ApiResponse<any>> {
+    return this.get('/health');
+  }
+
+  /**
+   * Get API endpoints documentation
+   */
+  async getApiDocumentation(): Promise<ApiResponse<any>> {
+    return this.get('/swagger.json');
+  }
+
+  /**
+   * Export data in various formats
+   */
+  async exportData(type: string, format: 'json' | 'csv' | 'xml', params?: any): Promise<ApiResponse<any>> {
+    return this.get(`/export/${type}`, { ...params, format });
+  }
+
+  /**
+   * Import data from file
+   */
+  async importData(type: string, filePath: string, options?: any): Promise<ApiResponse<any>> {
+    const formData = new FormData();
+    const fileStream = fs.createReadStream(filePath);
+    formData.append('file', fileStream);
+    
+    if (options) {
+      Object.keys(options).forEach(key => {
+        formData.append(key, options[key]);
+      });
+    }
+
+    return this.post(`/import/${type}`, formData, {
+      headers: formData.getHeaders(),
+      timeout: 120000 // 2 minutes for imports
+    });
+  }
+
+  /**
+   * Search across all content types
+   */
+  async globalSearch(query: string, types?: string[], limit?: number): Promise<ApiResponse<any>> {
+    const params = { q: query };
+    if (types) params['types'] = types.join(',');
+    if (limit) params['limit'] = limit;
+    return this.get('/search', params);
+  }
+
+  // ========== LEGACY METHODS (Enhanced) ==========
 
   /**
    * Test connection to Xibo
@@ -591,7 +1096,7 @@ export class XiboClient {
   }
 
   /**
-   * Get server information
+   * Get server information (enhanced)
    */
   async getServerInfo(): Promise<any> {
     try {
