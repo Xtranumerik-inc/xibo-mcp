@@ -34,10 +34,10 @@ export const folderTools = [
         folderName: folder.folderName,
         parentId: folder.parentId,
         isRoot: folder.isRoot,
-        text: folder.folderName, // For tree display
-        id: folder.folderId, // For tree display
+        text: folder.folderName, // For tree display compatibility
+        id: folder.folderId, // For tree display compatibility
         children: [],
-        permissionClass: folder.permissionsFolderId ? 'restricted' : 'open',
+        permissionsClass: folder.permissionsFolderId ? 'restricted' : 'open',
         hasPermissions: Boolean(folder.permissionsFolderId),
         path: buildFolderPath(folder, folders)
       }));
@@ -70,17 +70,17 @@ function buildFolderHierarchy(folders: any[], maxDepth: number, currentDepth = 0
   
   // Create folder map
   folders.forEach(folder => {
-    folderMap.set(folder.id, { ...folder, children: [] });
+    folderMap.set(folder.folderId, { ...folder, children: [] });
   });
   
   // Build hierarchy
   folders.forEach(folder => {
     if (folder.parentId === 0 || !folderMap.has(folder.parentId)) {
-      rootFolders.push(folderMap.get(folder.id));
+      rootFolders.push(folderMap.get(folder.folderId));
     } else {
       const parent = folderMap.get(folder.parentId);
       if (parent) {
-        parent.children.push(folderMap.get(folder.id));
+        parent.children.push(folderMap.get(folder.folderId));
       }
     }
   });
