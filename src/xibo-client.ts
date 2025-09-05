@@ -1,5 +1,5 @@
 /**
- * Xibo API Client with OAuth Authentication - Complete OAuth2 API Coverage
+ * Xibo API Client with OAuth Authentication + Direct User Auth Support
  * Enhanced with all missing API endpoints for comprehensive CMS integration
  * @author Xtranumerik Inc.
  */
@@ -8,8 +8,9 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 import FormData from 'form-data';
 import * as fs from 'fs';
 import * as path from 'path';
-import { XiboAuthConfig, XiboTokenResponse, ApiResponse, ApiError, User, UserGroup, SystemInfo, AuditLog, Webhook, Report } from './types.js';
+import { XiboAuthConfig, XiboTokenResponse, ApiResponse, ApiError, User, UserGroup, SystemInfo, AuditLog, Webhook, Report, AuthMode } from './types.js';
 import { TokenManager } from './auth/token-manager.js';
+import { DirectUserAuth } from './auth/direct-auth.js';
 
 export class XiboClient {
   private axiosInstance: AxiosInstance;
@@ -18,19 +19,21 @@ export class XiboClient {
   private tokenExpiry: Date | null = null;
   private refreshToken: string | null = null;
   private tokenManager: TokenManager | null = null;
-  private authMode: 'client_credentials' | 'user_tokens' = 'client_credentials';
+  private directAuth: DirectUserAuth | null = null;
+  private authMode: 'client_credentials' | 'user_tokens' | 'direct_user' = 'client_credentials';
 
   constructor(config: XiboAuthConfig) {
     this.config = {
       ...config,
-      grantType: config.grantType || 'client_credentials'
+      grantType: config.grantType || 'client_credentials',
+      authMode: config.authMode || 'client_credentials'
     };
 
     // Remove trailing slash from API URL
     this.config.apiUrl = this.config.apiUrl.replace(/\/$/, '');
 
-    // Initialize token manager for user authentication
-    this.initializeTokenManager();
+    // Initialize authentication based on mode
+    this.initializeAuthentication();
 
     // Create axios instance with base configuration
     this.axiosInstance = axios.create({
@@ -46,9 +49,22 @@ export class XiboClient {
     this.axiosInstance.interceptors.request.use(
       async (config) => {
         await this.ensureAuthenticated();
-        if (this.accessToken) {
+        
+        if (this.authMode === 'direct_user' && this.directAuth) {
+          // For direct user auth, we might need session cookies or custom headers
+          const session = this.directAuth.getSession();
+          if (session) {
+            // Add session cookie or custom auth header
+            config.headers['Cookie'] = `PHPSESSID=${session.sessionId}`;
+            if (session.csrf_token) {
+              config.headers['X-CSRF-TOKEN'] = session.csrf_token;
+            }
+          }
+        } else if (this.accessToken) {
+          // Standard OAuth2 Bearer token
           config.headers['Authorization'] = `Bearer ${this.accessToken}`;
         }
+        
         return config;
       },
       (error) => Promise.reject(error)
@@ -59,7 +75,7 @@ export class XiboClient {
       (response) => response,
       async (error: AxiosError) => {
         if (error.response?.status === 401) {
-          // Token expired, try to refresh or re-authenticate
+          // Token expired or invalid, try to refresh or re-authenticate
           await this.handleTokenExpiry();
           
           // Retry the original request
@@ -73,28 +89,48 @@ export class XiboClient {
   }
 
   /**
-   * Initialize token manager for user authentication
+   * Initialize authentication based on configured mode
    */
-  private initializeTokenManager(): void {
+  private initializeAuthentication(): void {
     try {
-      this.tokenManager = new TokenManager({
-        apiUrl: this.config.apiUrl,
-        clientId: this.config.clientId,
-        clientSecret: this.config.clientSecret
-      });
+      if (this.config.authMode === 'direct_user') {
+        // Initialize direct user authentication
+        if (this.config.username && this.config.password) {
+          this.directAuth = new DirectUserAuth(
+            this.config.apiUrl,
+            this.config.username,
+            this.config.password
+          );
+          this.authMode = 'direct_user';
+          console.log('🔐 Mode d\'authentification directe activé');
+        } else {
+          console.warn('⚠️  Direct user mode requested but no username/password provided');
+          this.authMode = 'client_credentials';
+        }
+      } else if (this.config.clientId && this.config.clientSecret) {
+        // Initialize token manager for OAuth2
+        this.tokenManager = new TokenManager({
+          apiUrl: this.config.apiUrl,
+          clientId: this.config.clientId,
+          clientSecret: this.config.clientSecret
+        });
 
-      // Check if user tokens are available
-      if (this.tokenManager.isAuthenticated()) {
-        this.authMode = 'user_tokens';
-        console.log('🔐 Mode d\'authentification utilisateur activé');
-        
-        const userInfo = this.tokenManager.getUserInfo();
-        if (userInfo) {
-          console.log(`👤 Utilisateur connecté: ${userInfo.username}`);
+        // Check if user tokens are available
+        if (this.tokenManager.isAuthenticated()) {
+          this.authMode = 'user_tokens';
+          console.log('🔐 Mode d\'authentification utilisateur OAuth2 activé');
+          
+          const userInfo = this.tokenManager.getUserInfo();
+          if (userInfo) {
+            console.log(`👤 Utilisateur connecté: ${userInfo.username}`);
+          }
+        } else {
+          this.authMode = 'client_credentials';
+          console.log('🔐 Mode d\'authentification client credentials activé');
         }
       }
     } catch (error) {
-      console.log('⚠️  Token manager initialization failed, using client credentials');
+      console.log('⚠️  Authentication initialization failed, using client credentials');
       this.authMode = 'client_credentials';
     }
   }
@@ -103,6 +139,23 @@ export class XiboClient {
    * Handle token expiry (try user token refresh first, then fallback)
    */
   private async handleTokenExpiry(): Promise<void> {
+    if (this.authMode === 'direct_user' && this.directAuth) {
+      try {
+        // Try to refresh direct user session
+        if (!this.directAuth.isSessionValid()) {
+          const authResult = await this.directAuth.authenticate();
+          if (!authResult.success) {
+            throw new Error('Direct authentication refresh failed');
+          }
+        }
+        return;
+      } catch (error) {
+        console.log('⚠️  Direct user session refresh failed');
+        // Don't fallback for direct user mode, just fail
+        throw error;
+      }
+    }
+
     if (this.authMode === 'user_tokens' && this.tokenManager) {
       try {
         const newToken = await this.tokenManager.getValidAccessToken();
@@ -121,15 +174,28 @@ export class XiboClient {
   }
 
   /**
-   * Authenticate with Xibo CMS (client credentials or user tokens)
+   * Authenticate with Xibo CMS (supports all auth modes)
    */
   private async authenticate(force: boolean = false): Promise<void> {
-    // Try user authentication first
+    // Handle direct user authentication
+    if (this.authMode === 'direct_user' && this.directAuth) {
+      if (force || !this.directAuth.isSessionValid()) {
+        const authResult = await this.directAuth.authenticate();
+        if (!authResult.success) {
+          throw new Error(`Direct authentication failed: ${authResult.error}`);
+        }
+        console.log('✅ Direct user authentication successful');
+      }
+      return;
+    }
+
+    // Handle OAuth2 user token authentication
     if (this.authMode === 'user_tokens' && this.tokenManager) {
       try {
         const token = await this.tokenManager.getValidAccessToken();
         if (token) {
           this.accessToken = token;
+          console.log('✅ User token authentication successful');
           return;
         }
       } catch (error) {
@@ -138,9 +204,13 @@ export class XiboClient {
       }
     }
 
-    // Client credentials authentication
+    // Handle client credentials authentication
     if (!force && this.isTokenValid()) {
       return;
+    }
+
+    if (!this.config.clientId || !this.config.clientSecret) {
+      throw new Error('Client credentials not configured for fallback authentication');
     }
 
     try {
@@ -202,7 +272,7 @@ export class XiboClient {
       const expirySeconds = response.data.expires_in - 60;
       this.tokenExpiry = new Date(Date.now() + expirySeconds * 1000);
 
-      console.log('✅ Successfully authenticated with Xibo CMS');
+      console.log('✅ Successfully authenticated with Xibo CMS (client credentials)');
     } catch (error: any) {
       console.error('❌ Authentication failed:', error.response?.data || error.message);
       throw new Error(`Failed to authenticate with Xibo: ${error.message}`);
@@ -213,6 +283,10 @@ export class XiboClient {
    * Check if current token is valid
    */
   private isTokenValid(): boolean {
+    if (this.authMode === 'direct_user' && this.directAuth) {
+      return this.directAuth.isSessionValid();
+    }
+    
     if (!this.accessToken || !this.tokenExpiry) {
       return false;
     }
@@ -223,6 +297,16 @@ export class XiboClient {
    * Ensure authenticated before making requests
    */
   private async ensureAuthenticated(): Promise<void> {
+    if (this.authMode === 'direct_user' && this.directAuth) {
+      if (!this.directAuth.isSessionValid()) {
+        const authResult = await this.directAuth.authenticate();
+        if (!authResult.success) {
+          throw new Error('Direct authentication failed');
+        }
+      }
+      return;
+    }
+
     if (this.authMode === 'user_tokens' && this.tokenManager) {
       const token = await this.tokenManager.getValidAccessToken();
       if (token) {
@@ -264,7 +348,7 @@ export class XiboClient {
   /**
    * Get current authentication mode
    */
-  public getAuthMode(): 'client_credentials' | 'user_tokens' {
+  public getAuthMode(): 'client_credentials' | 'user_tokens' | 'direct_user' {
     return this.authMode;
   }
 
@@ -276,15 +360,28 @@ export class XiboClient {
     isAuthenticated: boolean;
     userInfo?: any;
     tokenStats?: any;
+    sessionInfo?: any;
   } {
     const status = {
       mode: this.authMode,
       isAuthenticated: false,
       userInfo: undefined as any,
-      tokenStats: undefined as any
+      tokenStats: undefined as any,
+      sessionInfo: undefined as any
     };
 
-    if (this.authMode === 'user_tokens' && this.tokenManager) {
+    if (this.authMode === 'direct_user' && this.directAuth) {
+      status.isAuthenticated = this.directAuth.isSessionValid();
+      const session = this.directAuth.getSession();
+      if (session) {
+        status.userInfo = { username: session.username, userId: session.userId };
+        status.sessionInfo = {
+          sessionId: session.sessionId,
+          expiresAt: session.expires_at,
+          permissions: session.permissions
+        };
+      }
+    } else if (this.authMode === 'user_tokens' && this.tokenManager) {
       status.isAuthenticated = this.tokenManager.isAuthenticated();
       status.userInfo = this.tokenManager.getUserInfo() || undefined;
       status.tokenStats = this.tokenManager.getTokenStats() || undefined;
@@ -316,18 +413,37 @@ export class XiboClient {
   }
 
   /**
-   * Logout user (only affects user tokens)
+   * Logout user (affects user tokens and direct user sessions)
    */
-  public logout(): void {
+  public async logout(): Promise<void> {
+    if (this.authMode === 'direct_user' && this.directAuth) {
+      await this.directAuth.logout();
+    }
+    
     if (this.tokenManager) {
       this.tokenManager.logout();
     }
     
-    if (this.authMode === 'user_tokens') {
+    if (this.authMode === 'user_tokens' || this.authMode === 'direct_user') {
       this.authMode = 'client_credentials';
       this.accessToken = null;
       this.tokenExpiry = null;
     }
+  }
+
+  // ========== GENERIC HTTP REQUEST METHOD ==========
+
+  /**
+   * Generic request method that can be used by other parts of the system
+   */
+  async request<T = any>(method: string, endpoint: string, data?: any, config?: any): Promise<T> {
+    const response = await this.axiosInstance.request<T>({
+      method,
+      url: endpoint,
+      data,
+      ...config
+    });
+    return response.data;
   }
 
   // ========== BASIC HTTP METHODS ==========
@@ -685,263 +801,7 @@ export class XiboClient {
     return this.put('/security/settings', settings);
   }
 
-  // ========== REPORTING AND ANALYTICS ==========
-
-  /**
-   * Generate report
-   */
-  async generateReport(reportType: string, params: any): Promise<ApiResponse<any>> {
-    return this.post(`/report/${reportType}`, params);
-  }
-
-  /**
-   * List available reports
-   */
-  async listReports(): Promise<ApiResponse<Report[]>> {
-    return this.get('/report');
-  }
-
-  /**
-   * Schedule report
-   */
-  async scheduleReport(reportId: number, schedule: any): Promise<ApiResponse<void>> {
-    return this.post(`/report/${reportId}/schedule`, schedule);
-  }
-
-  /**
-   * Get analytics dashboard data
-   */
-  async getAnalyticsDashboard(timeframe?: string): Promise<ApiResponse<any>> {
-    const params = timeframe ? { timeframe } : {};
-    return this.get('/analytics/dashboard', params);
-  }
-
-  /**
-   * Get performance metrics
-   */
-  async getPerformanceMetrics(metric: string, params?: any): Promise<ApiResponse<any>> {
-    return this.get(`/metrics/${metric}`, params);
-  }
-
-  /**
-   * Get usage statistics
-   */
-  async getUsageStats(params?: any): Promise<ApiResponse<any>> {
-    return this.get('/stats/usage', params);
-  }
-
-  // ========== FILE AND FOLDER MANAGEMENT ==========
-
-  /**
-   * Create folder
-   */
-  async createFolder(name: string, parentId?: number): Promise<ApiResponse<any>> {
-    const data: { text: string; parentId?: number } = { text: name };
-    if (parentId) data.parentId = parentId;
-    return this.post('/folder', data);
-  }
-
-  /**
-   * Update folder
-   */
-  async updateFolder(folderId: number, name: string): Promise<ApiResponse<any>> {
-    return this.put(`/folder/${folderId}`, { text: name });
-  }
-
-  /**
-   * Delete folder
-   */
-  async deleteFolder(folderId: number): Promise<ApiResponse<void>> {
-    return this.delete(`/folder/${folderId}`);
-  }
-
-  /**
-   * Move item to folder
-   */
-  async moveToFolder(itemType: string, itemId: number, folderId: number): Promise<ApiResponse<void>> {
-    return this.put(`/${itemType}/${itemId}`, { folderId });
-  }
-
-  /**
-   * Upload file to library
-   */
-  async uploadFile(filePath: string, additionalFields?: Record<string, any>): Promise<ApiResponse<any>> {
-    return this.uploadFileToEndpoint('/library', filePath, additionalFields);
-  }
-
-  /**
-   * Upload file to specific endpoint
-   */
-  async uploadFileToEndpoint(endpoint: string, filePath: string, additionalFields?: Record<string, any>): Promise<ApiResponse<any>> {
-    const formData = new FormData();
-    
-    // Add the file
-    const fileName = path.basename(filePath);
-    const fileStream = fs.createReadStream(filePath);
-    formData.append('files', fileStream, fileName);
-    
-    // Add additional form fields
-    if (additionalFields) {
-      Object.keys(additionalFields).forEach(key => {
-        formData.append(key, additionalFields[key]);
-      });
-    }
-
-    try {
-      const response = await this.axiosInstance.post(endpoint, formData, {
-        headers: {
-          ...formData.getHeaders(),
-          'Accept': 'application/json'
-        },
-        timeout: 60000 // 1 minute timeout for file uploads
-      });
-      
-      return {
-        data: response.data,
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers
-      };
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  // ========== WEBHOOK MANAGEMENT ==========
-
-  /**
-   * Create webhook
-   */
-  async createWebhook(webhookData: Partial<Webhook>): Promise<ApiResponse<Webhook>> {
-    return this.post('/webhook', webhookData);
-  }
-
-  /**
-   * Update webhook
-   */
-  async updateWebhook(webhookId: number, webhookData: Partial<Webhook>): Promise<ApiResponse<Webhook>> {
-    return this.put(`/webhook/${webhookId}`, webhookData);
-  }
-
-  /**
-   * Delete webhook
-   */
-  async deleteWebhook(webhookId: number): Promise<ApiResponse<void>> {
-    return this.delete(`/webhook/${webhookId}`);
-  }
-
-  /**
-   * Test webhook
-   */
-  async testWebhook(webhookId: number, testData?: any): Promise<ApiResponse<any>> {
-    return this.post(`/webhook/${webhookId}/test`, testData);
-  }
-
-  /**
-   * Get webhook logs
-   */
-  async getWebhookLogs(webhookId: number, params?: any): Promise<ApiResponse<any[]>> {
-    return this.get(`/webhook/${webhookId}/logs`, params);
-  }
-
-  // ========== BACKUP AND RESTORE ==========
-
-  /**
-   * Create system backup
-   */
-  async createBackup(includeMedia: boolean = false): Promise<ApiResponse<any>> {
-    return this.post('/backup', { includeMedia });
-  }
-
-  /**
-   * List available backups
-   */
-  async listBackups(): Promise<ApiResponse<any[]>> {
-    return this.get('/backup');
-  }
-
-  /**
-   * Restore from backup
-   */
-  async restoreBackup(backupId: string): Promise<ApiResponse<void>> {
-    return this.post(`/backup/${backupId}/restore`);
-  }
-
-  /**
-   * Download backup
-   */
-  async downloadBackup(backupId: string): Promise<ApiResponse<any>> {
-    return this.get(`/backup/${backupId}/download`, {}, { responseType: 'stream' });
-  }
-
-  /**
-   * Delete backup
-   */
-  async deleteBackup(backupId: string): Promise<ApiResponse<void>> {
-    return this.delete(`/backup/${backupId}`);
-  }
-
-  // ========== ADVANCED FEATURES ==========
-
-  /**
-   * Get API version info
-   */
-  async getApiVersion(): Promise<ApiResponse<any>> {
-    return this.get('/version');
-  }
-
-  /**
-   * Health check endpoint
-   */
-  async healthCheck(): Promise<ApiResponse<any>> {
-    return this.get('/health');
-  }
-
-  /**
-   * Get API endpoints documentation
-   */
-  async getApiDocumentation(): Promise<ApiResponse<any>> {
-    return this.get('/swagger.json');
-  }
-
-  /**
-   * Export data in various formats
-   */
-  async exportData(type: string, format: 'json' | 'csv' | 'xml', params?: any): Promise<ApiResponse<any>> {
-    return this.get(`/export/${type}`, { ...params, format });
-  }
-
-  /**
-   * Import data from file
-   */
-  async importData(type: string, filePath: string, options?: any): Promise<ApiResponse<any>> {
-    const formData = new FormData();
-    const fileStream = fs.createReadStream(filePath);
-    formData.append('file', fileStream);
-    
-    if (options) {
-      Object.keys(options).forEach(key => {
-        formData.append(key, options[key]);
-      });
-    }
-
-    return this.post(`/import/${type}`, formData, {
-      headers: formData.getHeaders(),
-      timeout: 120000 // 2 minutes for imports
-    });
-  }
-
-  /**
-   * Search across all content types
-   */
-  async globalSearch(query: string, types?: string[], limit?: number): Promise<ApiResponse<any>> {
-    const params: { q: string; types?: string; limit?: number } = { q: query };
-    if (types) params.types = types.join(',');
-    if (limit) params.limit = limit;
-    return this.get('/search', params);
-  }
-
-  // ========== LEGACY METHODS (Enhanced) ==========
+  // ========== TESTING AND CONNECTION METHODS ==========
 
   /**
    * Test connection to Xibo
@@ -987,9 +847,29 @@ export class XiboClient {
    * Test different authentication methods based on Xibo documentation
    */
   async debugAuthentication(): Promise<void> {
-    console.log('\n🔍 Debug Authentication Process (Based on Xibo Docs)');
-    console.log('=====================================================');
+    console.log('\n🔍 Debug Authentication Process');
+    console.log('================================');
+    console.log(`Current mode: ${this.authMode}`);
     
+    if (this.authMode === 'direct_user') {
+      console.log('Direct user authentication mode - testing session...');
+      if (this.directAuth) {
+        const isValid = this.directAuth.isSessionValid();
+        console.log(`Session valid: ${isValid}`);
+        
+        if (!isValid) {
+          console.log('Attempting to re-authenticate...');
+          const authResult = await this.directAuth.authenticate();
+          console.log(`Re-authentication result: ${authResult.success}`);
+          if (!authResult.success) {
+            console.log(`Error: ${authResult.error}`);
+          }
+        }
+      }
+      return;
+    }
+
+    // OAuth2 debug (existing logic)
     const authMethods = [
       {
         name: 'Form-encoded with client credentials in body',
@@ -1033,27 +913,24 @@ export class XiboClient {
           // Configure authentication method based on Xibo documentation
           switch (authMethod.method) {
             case 'form-body':
-              // Standard form-encoded with credentials in body
               requestData = new URLSearchParams();
               requestData.append('grant_type', authMethod.grant_type);
-              requestData.append('client_id', this.config.clientId);
-              requestData.append('client_secret', this.config.clientSecret);
+              requestData.append('client_id', this.config.clientId!);
+              requestData.append('client_secret', this.config.clientSecret!);
               requestConfig.headers['Content-Type'] = 'application/x-www-form-urlencoded';
               break;
 
             case 'basic-auth':
-              // HTTP Basic Auth (for confidential clients)
               requestData = new URLSearchParams();
               requestData.append('grant_type', authMethod.grant_type);
               requestConfig.headers['Content-Type'] = 'application/x-www-form-urlencoded';
               requestConfig.auth = {
-                username: this.config.clientId,
-                password: this.config.clientSecret
+                username: this.config.clientId!,
+                password: this.config.clientSecret!
               };
               break;
 
             case 'form-header':
-              // Form-encoded with authorization header
               requestData = new URLSearchParams();
               requestData.append('grant_type', authMethod.grant_type);
               requestConfig.headers['Content-Type'] = 'application/x-www-form-urlencoded';
@@ -1087,12 +964,12 @@ export class XiboClient {
     
     console.log('\n❌ All authentication methods failed');
     console.log('\n🔧 Possible Solutions:');
-    console.log('   1. Try user authentication with: npm run auth-user');
-    console.log('   2. Check if application is configured as "Confidential Client" in Xibo CMS');
-    console.log('   3. Verify the "Client Credentials" grant type is enabled for your application');
-    console.log('   4. Ensure the client ID and secret are correctly copied from Xibo Applications page');
-    console.log('   5. Check if the Xibo server version supports the expected OAuth endpoints');
-    console.log('   6. Verify there are no network/firewall issues preventing authentication');
+    console.log('   1. For OAuth2: Try user authentication with: npm run auth-user');
+    console.log('   2. For Direct User: Check username/password in .env file');
+    console.log('   3. Check if application is configured correctly in Xibo CMS');
+    console.log('   4. Verify the client ID and secret are correctly configured');
+    console.log('   5. Ensure the Xibo server version supports the expected endpoints');
+    console.log('   6. Verify there are no network/firewall issues');
   }
 
   /**
