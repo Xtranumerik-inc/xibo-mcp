@@ -304,12 +304,14 @@ const performanceMetrics: ToolDefinition = {
     const client: XiboClient = params._xiboClient;
     
     try {
-      const metricsParams = {
+      const metricsParams: any = {
         period: params.period,
         aggregation: params.aggregation
       };
       
-      if (params.displayId) metricsParams['displayId'] = params.displayId;
+      if (params.displayId) {
+        metricsParams.displayId = params.displayId;
+      }
       
       const metrics = await client.getPerformanceMetrics(params.metric, metricsParams);
       
@@ -367,7 +369,7 @@ const performanceMetrics: ToolDefinition = {
       // Historical data points
       if (metrics.data.dataPoints && metrics.data.dataPoints.length > 0) {
         result += `\n**Points de données récents:**\n`;
-        metrics.data.dataPoints.slice(-5).forEach((point: any, index: number) => {
+        metrics.data.dataPoints.slice(-5).forEach((point: any) => {
           result += `   ${point.timestamp}: ${point.value}\n`;
         });
       }
