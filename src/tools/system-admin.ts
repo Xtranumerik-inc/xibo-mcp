@@ -235,12 +235,13 @@ const systemLogs: ToolDefinition = {
         result += `\n`;
         
         logs.data.forEach((log: any, index: number) => {
-          const levelIcon = {
+          const levelIcons: Record<string, string> = {
             'error': '🔴',
             'warning': '🟡',
             'info': '🔵',
             'debug': '⚪'
-          }[log.type] || '📄';
+          };
+          const levelIcon = levelIcons[log.type] || '📄';
           
           result += `${levelIcon} **${index + 1}.** [${log.logDate}] ${log.channel || 'System'}\n`;
           result += `   📝 ${log.message}\n`;
@@ -305,12 +306,13 @@ const systemTasks: ToolDefinition = {
         
         // Task details
         filteredTasks.forEach((task: any, index: number) => {
-          const statusIcon = {
+          const statusIcons: Record<string, string> = {
             'pending': '🟡',
             'running': '🔵',
             'completed': '🟢',
             'failed': '🔴'
-          }[task.status] || '⚪';
+          };
+          const statusIcon = statusIcons[task.status] || '⚪';
           
           result += `${statusIcon} **${index + 1}. ${task.name}**\n`;
           result += `   📄 Classe: ${task.class}\n`;
@@ -411,7 +413,7 @@ const systemBackup: ToolDefinition = {
           return '❌ Le paramètre "backupId" est requis pour action=download';
         }
         
-        const downloadResult = await client.downloadBackup(params.backupId);
+        await client.downloadBackup(params.backupId);
         
         return `📥 **Téléchargement préparé**\n\n` +
                `**Sauvegarde:** ${params.backupId}\n` +
@@ -530,12 +532,15 @@ const apiDocumentation: ToolDefinition = {
       } else if (params.format === 'swagger') {
         const swagger = await client.getApiDocumentation();
         
+        // Get the API URL from client without accessing private property
+        const apiUrl = (client as any).apiUrl || 'https://your-api-url';
+        
         return `📚 **Documentation Swagger**\n\n` +
                `**OpenAPI Version:** ${swagger.data.openapi || swagger.data.swagger}\n` +
                `**API Title:** ${swagger.data.info?.title}\n` +
                `**API Description:** ${swagger.data.info?.description}\n` +
                `**Endpoints:** ${Object.keys(swagger.data.paths || {}).length}\n\n` +
-               `💡 Accédez à Swagger UI sur: ${client.config?.apiUrl}/swagger`;
+               `💡 Accédez à Swagger UI sur: ${apiUrl}/swagger`;
                
       } else if (params.format === 'endpoints') {
         const swagger = await client.getApiDocumentation();
@@ -553,6 +558,8 @@ const apiDocumentation: ToolDefinition = {
         }
         
         return result;
+      } else {
+        return '❌ Format invalide. Utilisez: summary, swagger, endpoints';
       }
     } catch (error: any) {
       return `Erreur lors de la récupération de la documentation API: ${error.message}`;
