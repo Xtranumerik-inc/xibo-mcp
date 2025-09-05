@@ -53,7 +53,7 @@ export class TokenManager {
     const key = crypto.scryptSync(this.config.clientSecret, 'salt', 32);
     const iv = crypto.randomBytes(16);
     
-    const cipher = crypto.createCipherGCM(algorithm, key, iv);
+    const cipher = crypto.createCipheriv(algorithm, key, iv);
     cipher.setAAD(Buffer.from('xibo-mcp-token'));
     
     let encrypted = cipher.update(token, 'utf8', 'hex');
@@ -77,7 +77,7 @@ export class TokenManager {
       const key = crypto.scryptSync(this.config.clientSecret, 'salt', 32);
       const iv = Buffer.from(encryptedData.iv, 'hex');
       
-      const decipher = crypto.createDecipherGCM(algorithm, key, iv);
+      const decipher = crypto.createDecipheriv(algorithm, key, iv);
       decipher.setAAD(Buffer.from('xibo-mcp-token'));
       decipher.setAuthTag(Buffer.from(encryptedData.authTag, 'hex'));
       
