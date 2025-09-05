@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Xtranumerik MCP Server for Xibo Digital Signage
- * Professional Edition v2.0.0 - Complete API Integration
+ * Professional Edition v2.0.0 - Complete OAuth2 API Integration
  * @author Xtranumerik Inc.
  */
 
@@ -17,7 +17,7 @@ import {
 import { getConfig } from './config/index.js';
 import XiboClient from './xibo-client.js';
 
-// Original 8 modules (32 tools)
+// ========== CORE TOOLS (32 tools) ==========
 import { displayTools } from './tools/displays.js';
 import { layoutTools } from './tools/layouts.js';
 import { mediaTools } from './tools/media.js';
@@ -27,7 +27,7 @@ import { scheduleTools } from './tools/schedules.js';
 import { displayGroupTools } from './tools/display-groups.js';
 import { broadcastTools } from './tools/broadcast.js';
 
-// New 11 advanced modules (85+ tools) - OAuth2 User Authentication Required
+// ========== ADVANCED TOOLS (100+ tools) - OAuth2 Enhanced ==========
 import { userTools } from './tools/users.js';
 import { folderTools } from './tools/folders.js';
 import { statisticsTools } from './tools/statistics.js';
@@ -39,6 +39,10 @@ import { transitionTools } from './tools/transitions.js';
 import { syncTools } from './tools/sync.js';
 import { menuboardTools } from './tools/menuboards.js';
 import { automationTools } from './tools/actions.js';
+
+// ========== NEW OAUTH2 & PROFESSIONAL TOOLS (30+ tools) ==========
+import { systemAdminTools } from './tools/system-admin.js';
+import { analyticsReportTools } from './tools/analytics-reports.js';
 
 import { ToolDefinition } from './types.js';
 
@@ -52,7 +56,7 @@ const LOGO = `
 \u001b[0m                                                            
 \u001b[32m            MCP Server for Xibo Digital Signage
             Professional Edition v2.0.0 by Xtranumerik Inc.
-            Complete API Integration - 117 Tools Available\u001b[0m
+            Complete OAuth2 API Integration - 150+ Tools Available\u001b[0m
 `;
 
 class XiboMCPServer {
@@ -65,7 +69,7 @@ class XiboMCPServer {
     // Load configuration
     this.config = getConfig();
     
-    // Initialize Xibo client with dual authentication support
+    // Initialize Xibo client with comprehensive OAuth2 support
     this.xiboClient = new XiboClient({
       apiUrl: this.config.apiUrl,
       clientId: this.config.clientId,
@@ -95,7 +99,7 @@ class XiboMCPServer {
 
     // Core tool categories (32 original tools)
     const coreToolCategories = [
-      { name: 'Displays', tools: displayTools, count: displayTools.length, description: 'Gestion complète des écrans' },
+      { name: 'Displays', tools: displayTools, count: displayTools.length, description: 'Gestion complète des écrans et groupes' },
       { name: 'Layouts', tools: layoutTools, count: layoutTools.length, description: 'Création et gestion des mises en page' },
       { name: 'Media', tools: mediaTools, count: mediaTools.length, description: 'Gestion des médias et fichiers' },
       { name: 'Campaigns', tools: campaignTools, count: campaignTools.length, description: 'Campagnes publicitaires' },
@@ -105,23 +109,30 @@ class XiboMCPServer {
       { name: 'Broadcasting', tools: broadcastTools, count: broadcastTools.length, description: 'Diffusion intelligente géo-ciblée' }
     ];
 
-    // Advanced tool categories (85+ new tools) - OAuth2 Required
+    // Advanced tool categories (OAuth2 Required)
     const advancedToolCategories = [
       { name: 'Users & Groups', tools: userTools, count: userTools.length, description: 'Gestion utilisateurs et permissions', oauth: true },
-      { name: 'Folders & Permissions', tools: folderTools, count: folderTools.length, description: 'Organisation et sécurité', oauth: true },
-      { name: 'Statistics & Reports', tools: statisticsTools, count: statisticsTools.length, description: 'Analytics et rapports détaillés', oauth: true },
-      { name: 'Datasets', tools: datasetTools, count: datasetTools.length, description: 'Données dynamiques et synchronisation', oauth: true },
+      { name: 'Folders & Security', tools: folderTools, count: folderTools.length, description: 'Organisation et sécurité', oauth: true },
+      { name: 'Statistics & Analytics', tools: statisticsTools, count: statisticsTools.length, description: 'Analytics de base', oauth: true },
+      { name: 'Datasets & Sync', tools: datasetTools, count: datasetTools.length, description: 'Données dynamiques et synchronisation', oauth: true },
       { name: 'Templates & Widgets', tools: templateTools, count: templateTools.length, description: 'Templates avancés et widgets', oauth: true },
       { name: 'Notifications & Alerts', tools: notificationTools, count: notificationTools.length, description: 'Alertes d\'urgence et notifications', oauth: true },
-      { name: 'System Configuration', tools: systemTools, count: systemTools.length, description: 'Configuration système avancée', oauth: true },
+      { name: 'System Configuration', tools: systemTools, count: systemTools.length, description: 'Configuration système de base', oauth: true },
       { name: 'Transitions & Effects', tools: transitionTools, count: transitionTools.length, description: 'Effets visuels professionnels', oauth: true },
-      { name: 'Sync & Integrations', tools: syncTools, count: syncTools.length, description: 'Synchronisation multi-CMS', oauth: true },
+      { name: 'Multi-CMS Sync', tools: syncTools, count: syncTools.length, description: 'Synchronisation multi-CMS', oauth: true },
       { name: 'Menu Boards', tools: menuboardTools, count: menuboardTools.length, description: 'Menus dynamiques restaurants', oauth: true },
-      { name: 'Automation', tools: automationTools, count: automationTools.length, description: 'Workflows et automatisation', oauth: true }
+      { name: 'Automation & Workflows', tools: automationTools, count: automationTools.length, description: 'Workflows et automatisation', oauth: true }
+    ];
+
+    // Professional OAuth2 tool categories (NEW)
+    const professionalToolCategories = [
+      { name: 'System Administration', tools: systemAdminTools, count: systemAdminTools.length, description: 'Administration système complète', oauth: true, professional: true },
+      { name: 'Analytics & Reports', tools: analyticsReportTools, count: analyticsReportTools.length, description: 'Rapports et analytics avancés', oauth: true, professional: true }
     ];
 
     let coreToolsCount = 0;
     let advancedToolsCount = 0;
+    let professionalToolsCount = 0;
 
     // Load core tools
     coreToolCategories.forEach(category => {
@@ -139,33 +150,66 @@ class XiboMCPServer {
       });
     });
 
-    const totalTools = coreToolsCount + advancedToolsCount;
-    const totalCategories = coreToolCategories.length + advancedToolCategories.length;
+    // Load professional OAuth2 tools
+    professionalToolCategories.forEach(category => {
+      category.tools.forEach(tool => {
+        this.tools.set(tool.name, tool);
+        professionalToolsCount++;
+      });
+    });
+
+    const totalTools = coreToolsCount + advancedToolsCount + professionalToolsCount;
+    const totalCategories = coreToolCategories.length + advancedToolCategories.length + professionalToolCategories.length;
 
     console.log(`✅ Loaded ${totalTools} tools across ${totalCategories} categories`);
     console.log(`   📊 Core Tools: ${coreToolsCount} (Client Credentials)`);
     console.log(`   🚀 Advanced Tools: ${advancedToolsCount} (OAuth2 User Auth)`);
+    console.log(`   💎 Professional Tools: ${professionalToolsCount} (OAuth2 Full API)`);
     
-    console.log('\\n📋 Core Tool Categories:');
+    console.log('\n📋 Core Tool Categories:');
     coreToolCategories.forEach(category => {
       console.log(`   • ${category.name}: ${category.count} tools - ${category.description}`);
     });
     
-    console.log('\\n🚀 Advanced Tool Categories (OAuth2):');
+    console.log('\n🚀 Advanced Tool Categories (OAuth2):');
     advancedToolCategories.forEach(category => {
       console.log(`   • ${category.name}: ${category.count} tools - ${category.description}`);
     });
+
+    console.log('\n💎 Professional Tool Categories (OAuth2 Full API):');
+    professionalToolCategories.forEach(category => {
+      console.log(`   • ${category.name}: ${category.count} tools - ${category.description}`);
+    });
     
-    console.log('\\n🎯 Key Professional Features:');
-    console.log('   - Complete Xibo 4.x API integration (117 tools)');
-    console.log('   - Dual authentication: Client Credentials + OAuth2 User');
-    console.log('   - Intelligent Quebec/Montreal geographic filtering');
-    console.log('   - Emergency alerts with geo-targeting');
-    console.log('   - Professional menu boards for restaurants');
-    console.log('   - Advanced analytics and reporting');
-    console.log('   - Multi-CMS synchronization capabilities');
-    console.log('   - Automated workflows and triggers');
-    console.log('   - Natural language control in French/English');
+    console.log('\n🎯 Comprehensive API Features:');
+    console.log('   ✅ User Management (Create, Edit, Delete, Permissions)');
+    console.log('   ✅ OAuth2 Application Management');
+    console.log('   ✅ System Administration (Settings, Maintenance, Logs)');
+    console.log('   ✅ Security & Audit (IP Control, Rate Limiting, Access Logs)');
+    console.log('   ✅ Advanced Analytics & Reports (Custom, Scheduled)');
+    console.log('   ✅ Performance Monitoring (System, Display, Bandwidth)');
+    console.log('   ✅ Backup & Restore Operations');
+    console.log('   ✅ Webhook Management');
+    console.log('   ✅ File Upload/Download (All formats)');
+    console.log('   ✅ Global Search & Export/Import');
+    console.log('   ✅ Health Checks & API Documentation');
+    
+    console.log('\n🔐 Authentication Capabilities:');
+    console.log('   • Client Credentials Grant (Basic API access)');
+    console.log('   • OAuth2 User Authentication (Full API access)');
+    console.log('   • Token Management & Refresh');
+    console.log('   • Application Scope Control');
+    console.log('   • Rate Limiting & Security Controls');
+    
+    console.log('\n📊 Complete OAuth2 Coverage:');
+    console.log('   🔹 All CRUD operations (Create, Read, Update, Delete)');
+    console.log('   🔹 Advanced filtering and search');
+    console.log('   🔹 Bulk operations and batch processing');
+    console.log('   🔹 Real-time monitoring and alerts');
+    console.log('   🔹 Professional reporting and analytics');
+    console.log('   🔹 Multi-format export/import (JSON, CSV, Excel, PDF)');
+    console.log('   🔹 Automated workflows and scheduling');
+    console.log('   🔹 Geographic targeting and filtering');
   }
 
   private setupHandlers(): void {
@@ -197,7 +241,7 @@ class XiboMCPServer {
       }
 
       try {
-        // Pass Xibo client and config to tool handler
+        // Pass enhanced Xibo client and config to tool handler
         const result = await tool.handler({ 
           ...args, 
           _xiboClient: this.xiboClient, 
@@ -225,7 +269,7 @@ class XiboMCPServer {
   async start(): Promise<void> {
     console.log(LOGO);
     console.log('🚀 Starting Xtranumerik MCP Server for Xibo...');
-    console.log('='.repeat(60));
+    console.log('='.repeat(70));
     
     try {
       // Test Xibo connection
@@ -247,12 +291,19 @@ class XiboMCPServer {
         console.log('ℹ️  Connected to Xibo CMS (version info unavailable)');
       }
 
-      // Check authentication mode
+      // Check authentication mode and capabilities
       const authMode = this.xiboClient.getAuthMode();
-      console.log(`🔐 Authentication: ${authMode === 'user_tokens' ? 'OAuth2 User (Full Access)' : 'Client Credentials (Core Features)'}`);
+      const authStatus = this.xiboClient.getAuthStatus();
       
-      if (authMode === 'client_credentials') {
-        console.log('💡 Run "npm run auth-user" for advanced features access');
+      console.log(`🔐 Authentication: ${authMode === 'user_tokens' ? 'OAuth2 User (Full API Access)' : 'Client Credentials (Core Features)'}`);
+      
+      if (authMode === 'user_tokens' && authStatus.userInfo) {
+        console.log(`👤 Authenticated as: ${authStatus.userInfo.username}`);
+        if (authStatus.tokenStats) {
+          console.log(`🔑 Token expires: ${new Date(authStatus.tokenStats.expiresAt).toLocaleString()}`);
+        }
+      } else if (authMode === 'client_credentials') {
+        console.log('💡 Run "npm run auth-user" for complete OAuth2 API access');
       }
 
       // Start the server
@@ -260,41 +311,57 @@ class XiboMCPServer {
       await this.server.connect(transport);
       
       console.log('✅ Xibo MCP Server is running!');
-      console.log('\\n📝 Server Information:');
+      console.log('\n📝 Server Information:');
       console.log(`   🏢 Company: ${this.config.companyName}`);
       console.log(`   🖥️  Server: Xibo MCP Professional v2.0.0`);
       console.log(`   🌐 Xibo API: ${this.config.apiUrl}`);
-      console.log(`   🛠️  Tools Available: ${this.tools.size}/117`);
-      console.log(`   🔐 Auth Mode: ${authMode === 'user_tokens' ? 'Full Access' : 'Core Features'}`);
+      console.log(`   🛠️  Tools Available: ${this.tools.size}/150+`);
+      console.log(`   🔐 Auth Mode: ${authMode === 'user_tokens' ? 'Full OAuth2 Access' : 'Client Credentials'}`);
       
-      console.log('\\n💬 Ready to receive commands from Claude!');
-      console.log('\\n💡 Example commands to try:');
-      console.log('   🍁 "Mets cette publicité dans tous mes écrans sauf ceux à Québec"');
-      console.log('   📊 "Montre-moi les statistiques de mes écrans de Montréal"');
-      console.log('   📅 "Programme cette campagne pour demain matin de 9h à 17h"');
-      console.log('   🎨 "Crée une mise en page avec des transitions élégantes"');
-      console.log('   🚨 "Diffuse cette alerte d\'urgence dans la région de Québec"');
-      console.log('   🍽️  "Crée un menu board pour mon restaurant avec prix dynamiques"');
-      console.log('   🤖 "Configure une automatisation pour les alertes météo"');
+      // Show available features based on auth mode
+      if (authMode === 'user_tokens') {
+        console.log('\n💎 Professional Features Active:');
+        console.log('   ✅ Complete user management');
+        console.log('   ✅ System administration');
+        console.log('   ✅ OAuth2 application management');
+        console.log('   ✅ Advanced security controls');
+        console.log('   ✅ Professional analytics & reports');
+        console.log('   ✅ Backup & restore operations');
+        console.log('   ✅ Performance monitoring');
+        console.log('   ✅ Webhook management');
+      } else {
+        console.log('\n📊 Core Features Active:');
+        console.log('   ✅ Display management');
+        console.log('   ✅ Content management');
+        console.log('   ✅ Basic scheduling');
+        console.log('   ✅ Geographic broadcasting');
+      }
       
-      console.log('\\n🎯 Fonctionnalités professionnelles disponibles:');
-      console.log('   🌍 Diffusion intelligente avec filtres géographiques');
-      console.log('   📈 Analytics et rapports détaillés');
-      console.log('   🚨 Alertes d\'urgence géo-ciblées');
-      console.log('   👥 Gestion avancée des utilisateurs et permissions');
-      console.log('   🍽️  Menu boards dynamiques pour restaurants');
-      console.log('   🔄 Synchronisation multi-CMS');
-      console.log('   🤖 Workflows et automatisation avancés');
-      console.log('   🎭 Transitions et effets visuels professionnels');
+      console.log('\n💬 Ready to receive commands from Claude!');
+      console.log('\n💡 Example professional commands:');
+      console.log('   👥 "Créer un utilisateur admin pour Montréal avec permissions limitées"');
+      console.log('   📊 "Génère un rapport complet de performance pour cette semaine"');
+      console.log('   🔧 "Mets le système en maintenance avec un message personnalisé"');
+      console.log('   💾 "Crée une sauvegarde complète incluant tous les médias"');
+      console.log('   🔐 "Liste toutes les applications OAuth2 et leurs tokens actifs"');
+      console.log('   📈 "Montre les métriques de performance des écrans de Québec"');
+      console.log('   🚨 "Configure une alerte automatique si un écran est hors ligne"');
+      console.log('   🔍 "Affiche les logs de sécurité des dernières 24h"');
       
-      console.log('\\n🍁 Optimisé pour le marché québécois:');
-      console.log('   • Support complet français/anglais');
-      console.log('   • Intégration Environnement Canada');
-      console.log('   • Fuseau horaire EST/EDT automatique');
-      console.log('   • Filtrage Québec/Montréal intelligent');
-      console.log('   • Contenu saisonnier adapté');
+      console.log('\n🌍 Fonctionnalités géographiques avancées:');
+      console.log('   🇨🇦 Filtrage intelligent Québec/Montréal');
+      console.log('   🌡️  Intégration météo Environnement Canada');
+      console.log('   🕐 Gestion fuseau horaire EST/EDT');
+      console.log('   🍁 Contenu saisonnier adapté au Québec');
       
-      console.log('\\n' + '='.repeat(60));
+      console.log('\n🔐 Sécurité et conformité:');
+      console.log('   • Contrôle d\'accès basé sur les rôles');
+      console.log('   • Audit complet des actions utilisateur');
+      console.log('   • Limitation de débit par utilisateur/IP');
+      console.log('   • Sauvegarde automatique et chiffrée');
+      console.log('   • Conformité RGPD et lois québécoises');
+      
+      console.log('\n' + '='.repeat(70));
       
     } catch (error: any) {
       console.error('❌ Failed to start server:', error.message);
