@@ -5,7 +5,6 @@
  */
 
 import { ToolDefinition } from '../types.js';
-import XiboClient from '../xibo-client.js';
 
 // ========== MENU BOARD CREATION TOOLS ==========
 
@@ -20,7 +19,7 @@ const menuboardCreate: ToolDefinition = {
     { name: 'template', type: 'string', description: 'Template style: modern, classic, elegant, casual', required: false }
   ],
   handler: async (params: any) => {
-    const client: XiboClient = params._xiboClient;
+    const client = params._xiboClient;
     
     try {
       const menuType = params.menuType || 'full';
