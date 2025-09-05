@@ -124,8 +124,6 @@ const menuboardUpdatePrices: ToolDefinition = {
     { name: 'newPrice', type: 'number', description: 'New price for single update', required: false }
   ],
   handler: async (params: any) => {
-    const client: XiboClient = params._xiboClient;
-    
     try {
       let result = `💰 **Mise à jour des prix du menu**\n\n`;
       
