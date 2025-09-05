@@ -14,6 +14,7 @@
     "register-app": "node scripts/register-xibo-app.js",
     "configure-claude": "node scripts/configure-claude.js",
     "test": "jest",
+    "test-auth": "node scripts/test-auth.js",
     "lint": "eslint src/**/*.ts"
   },
   "keywords": [
