@@ -5,7 +5,6 @@
  */
 
 import { ToolDefinition } from '../types.js';
-import XiboClient from '../xibo-client.js';
 
 // ========== MULTI-CMS SYNCHRONIZATION TOOLS ==========
 
@@ -16,23 +15,21 @@ const syncMultiCms: ToolDefinition = {
     { name: 'sourceCmsUrl', type: 'string', description: 'Source CMS URL', required: true },
     { name: 'targetCmsUrl', type: 'string', description: 'Target CMS URL', required: true },
     { name: 'syncType', type: 'string', description: 'Sync type: layouts, media, campaigns, displays, all', required: false },
-    { name: 'includeRegions', type: 'string', description: 'Regional filter: quebec,montreal,all', required: false }
+    { name: 'includeRegions', type: 'string', description: 'Regional filter: region1,region2,all', required: false }
   ],
   handler: async (params: any) => {
-    const client: XiboClient = params._xiboClient;
-    
     try {
       const syncType = params.syncType || 'all';
       const includeRegions = params.includeRegions || 'all';
       
-      let result = `🔄 **Synchronisation Multi-CMS**\n\n`;
-      result += `📋 **Configuration:**\n`;
-      result += `   Source: ${params.sourceCmsUrl}\n`;
-      result += `   Cible: ${params.targetCmsUrl}\n`;
-      result += `   Type: ${syncType}\n`;
-      result += `   Régions: ${includeRegions}\n\n`;
+      let result = `🔄 **Synchronisation Multi-CMS**\\n\\n`;
+      result += `📋 **Configuration:**\\n`;
+      result += `   Source: ${params.sourceCmsUrl}\\n`;
+      result += `   Cible: ${params.targetCmsUrl}\\n`;
+      result += `   Type: ${syncType}\\n`;
+      result += `   Régions: ${includeRegions}\\n\\n`;
       
-      result += `✅ **Synchronisation simulée avec succès**\n`;
+      result += `✅ **Synchronisation simulée avec succès**\\n`;
       result += `🎯 Configuration sauvegardée pour synchronisation future`;
       
       return result;
@@ -48,10 +45,10 @@ const syncContent: ToolDefinition = {
   parameters: [
     { name: 'contentType', type: 'string', description: 'Content type: layout, media, campaign', required: true },
     { name: 'contentId', type: 'number', description: 'Content ID to synchronize', required: true },
-    { name: 'targetLocation', type: 'string', description: 'Target location: quebec, montreal, national', required: true }
+    { name: 'targetLocation', type: 'string', description: 'Target location: region1, region2, national', required: true }
   ],
   handler: async (params: any) => {
-    return `🔄 **Contenu synchronisé**\n\nType: ${params.contentType}\nID: ${params.contentId}\nDestination: ${params.targetLocation}`;
+    return `🔄 **Contenu synchronisé**\\n\\nType: ${params.contentType}\\nID: ${params.contentId}\\nDestination: ${params.targetLocation}`;
   }
 };
 
@@ -62,7 +59,7 @@ const connectorList: ToolDefinition = {
     { name: 'type', type: 'string', description: 'Connector type: api, database, social, weather, rss', required: false }
   ],
   handler: async (params: any) => {
-    const connectorsData = {
+    const connectorsData: Record<string, string[]> = {
       api: ['REST API', 'GraphQL', 'SOAP'],
       database: ['MySQL', 'PostgreSQL', 'SQL Server'],
       social: ['Twitter', 'Facebook', 'Instagram'],
@@ -70,20 +67,20 @@ const connectorList: ToolDefinition = {
       rss: ['RSS Feed', 'News Feed']
     };
     
-    let result = `🔌 **Connecteurs disponibles**\n\n`;
+    let result = `🔌 **Connecteurs disponibles**\\n\\n`;
     
     if (params.type && connectorsData[params.type]) {
-      result += `${params.type.toUpperCase()}:\n`;
+      result += `${params.type.toUpperCase()}:\\n`;
       connectorsData[params.type].forEach((connector: string, index: number) => {
-        result += `   ${index + 1}. ${connector}\n`;
+        result += `   ${index + 1}. ${connector}\\n`;
       });
     } else {
-      Object.entries(connectorsData).forEach(([type, connectors]: [string, any]) => {
-        result += `${type.toUpperCase()} (${connectors.length}):\n`;
+      Object.entries(connectorsData).forEach(([type, connectors]: [string, string[]]) => {
+        result += `${type.toUpperCase()} (${connectors.length}):\\n`;
         connectors.forEach((connector: string, index: number) => {
-          result += `   ${index + 1}. ${connector}\n`;
+          result += `   ${index + 1}. ${connector}\\n`;
         });
-        result += '\n';
+        result += '\\n';
       });
     }
     
@@ -100,7 +97,7 @@ const connectorConfigure: ToolDefinition = {
     { name: 'endpoint', type: 'string', description: 'API endpoint URL', required: false }
   ],
   handler: async (params: any) => {
-    return `🔌 **Connecteur configuré: ${params.connectorName}**\n\n${params.apiKey ? '✅ API Key configurée' : '⚠️ Pas d\'API Key'}`;
+    return `🔌 **Connecteur configuré: ${params.connectorName}**\\n\\n${params.apiKey ? '✅ API Key configurée' : '⚠️ Pas d\'API Key'}`;
   }
 };
 
@@ -113,8 +110,8 @@ const apiWebhookCreate: ToolDefinition = {
     { name: 'events', type: 'string', description: 'Comma-separated events', required: true }
   ],
   handler: async (params: any) => {
-    const events = params.events.split(',').map(e => e.trim());
-    return `🎣 **Webhook créé: ${params.name}**\n\nURL: ${params.url}\nÉvénements: ${events.length}`;
+    const events = params.events.split(',').map((e: string) => e.trim());
+    return `🎣 **Webhook créé: ${params.name}**\\n\\nURL: ${params.url}\\nÉvénements: ${events.length}`;
   }
 };
 
@@ -127,7 +124,7 @@ const apiWebhookTest: ToolDefinition = {
   ],
   handler: async (params: any) => {
     const testUrl = params.url || `webhook-${params.webhookId}`;
-    return `🧪 **Test webhook: ${testUrl}**\n\n✅ Test réussi - Webhook fonctionnel`;
+    return `🧪 **Test webhook: ${testUrl}**\\n\\n✅ Test réussi - Webhook fonctionnel`;
   }
 };
 
