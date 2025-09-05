@@ -10,15 +10,12 @@ export const folderTools = [
   {
     name: 'folder_list',
     description: 'List folders with hierarchy and permissions',
-    parameters: {
-      type: 'object',
-      properties: {
-        parentId: { type: 'number', description: 'Parent folder ID (0 for root)' },
-        name: { type: 'string', description: 'Filter by folder name' },
-        includeEmpty: { type: 'boolean', description: 'Include empty folders', default: true },
-        maxDepth: { type: 'number', description: 'Maximum depth to traverse', default: 5 }
-      }
-    },
+    parameters: [
+      { name: 'parentId', type: 'number', description: 'Parent folder ID (0 for root)', required: false },
+      { name: 'name', type: 'string', description: 'Filter by folder name', required: false },
+      { name: 'includeEmpty', type: 'boolean', description: 'Include empty folders', required: false, default: true },
+      { name: 'maxDepth', type: 'number', description: 'Maximum depth to traverse', required: false, default: 5 }
+    ],
     handler: async (params: any, client: XiboClient) => {
       const queryParams: any = {};
       
