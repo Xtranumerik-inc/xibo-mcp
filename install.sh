@@ -66,7 +66,7 @@ echo -e "   • 32 outils de base disponibles"
 echo -e "   • Gestion des écrans, layouts, médias"
 echo -e "   • Campagnes et programmation"
 echo -e "   • Diffusion intelligente géo-ciblée"
-echo -e "   • Configuration rapide (2 minutes)\n"
+echo -e "   • Configuration rapide avec Client ID/Secret (2 minutes)\n"
 
 echo -e "${GREEN}🚀 Mode OAuth2 (Authentification Utilisateur Complète):${NC}"
 echo -e "   • TOUS les 117 outils disponibles"
@@ -75,7 +75,7 @@ echo -e "   • Analytics et rapports détaillés"
 echo -e "   • Alertes d'urgence géo-ciblées"
 echo -e "   • Menu boards et automatisation"
 echo -e "   • Workflows professionnels"
-echo -e "   • Configuration avec compte utilisateur (5 minutes)\n"
+echo -e "   • Configuration avec compte utilisateur Xibo (5 minutes)\n"
 
 # Handle AI installation mode
 if [ "$AI_INSTALL" = "true" ]; then
@@ -172,46 +172,25 @@ mkdir -p config/templates
 
 if [ "$SELECTED_AUTH" = "oauth2" ]; then
     echo -e "\n${CYAN}🔐 Configuration OAuth2 Utilisateur${NC}"
-    echo -e "${CYAN}Cette configuration vous donne accès aux 117 outils${NC}\n"
+    echo -e "${CYAN}Cette configuration vous donne accès aux 117 outils${NC}"
+    echo -e "${CYAN}Configuration directe avec votre compte utilisateur Xibo${NC}\n"
     
-    # Check if .env exists for OAuth2 mode
-    if [ -f ".env" ]; then
-        echo -e "${YELLOW}⚠️  Fichier .env détecté${NC}"
-        if [ "$AI_INSTALL" = "true" ]; then
-            echo -e "${BLUE}   Mode AI: Conservation de la configuration existante${NC}"
-        else
-            read -p "   Voulez-vous garder votre configuration existante? [Y/n]: " -n 1 -r
-            echo
-            if [[ $REPLY =~ ^[Nn]$ ]]; then
-                echo -e "${BLUE}⚙️  Configuration interactive...${NC}"
-                node scripts/setup.js
-            else
-                echo -e "${GREEN}✅ Configuration existante conservée${NC}"
-            fi
-        fi
-    else
-        # OAuth2 setup - first run setup.js for basic config, then auth-user
-        echo -e "${BLUE}⚙️  Étape 1/2: Configuration de base...${NC}"
-        if [ "$AI_INSTALL" = "true" ]; then
-            echo -e "${YELLOW}Mode AI: Veuillez configurer manuellement .env après l'installation${NC}"
-        else
-            node scripts/setup.js
-        fi
-    fi
-    
-    # OAuth2 user authentication
-    echo -e "\n${CYAN}⚙️  Étape 2/2: Authentification utilisateur OAuth2...${NC}"
+    # OAuth2 mode - SEULEMENT auth-user (pas de setup.js)
     if [ "$AI_INSTALL" = "true" ]; then
         echo -e "${YELLOW}Mode AI: Exécutez 'npm run auth-user' après l'installation pour configurer OAuth2${NC}"
+        echo -e "${YELLOW}       Le système créera automatiquement la configuration .env${NC}"
     else
-        echo -e "${CYAN}Configuration de votre compte utilisateur Xibo...${NC}"
+        echo -e "${CYAN}⚙️  Authentification utilisateur OAuth2...${NC}"
+        echo -e "${CYAN}Le script va vous guider pour configurer votre compte utilisateur Xibo${NC}"
+        echo -e "${CYAN}et créer automatiquement le fichier .env avec les bonnes informations.${NC}\n"
         npm run auth-user
     fi
     
 else
-    # Manual mode - standard setup
+    # Manual mode - SEULEMENT setup.js
     echo -e "\n${BLUE}⚙️  Configuration Manuel (Client Credentials)${NC}"
-    echo -e "${BLUE}Cette configuration vous donne accès aux 32 outils de base${NC}\n"
+    echo -e "${BLUE}Cette configuration vous donne accès aux 32 outils de base${NC}"
+    echo -e "${BLUE}Configuration avec Client ID et Client Secret${NC}\n"
     
     # Check if .env exists
     if [ -f ".env" ]; then
@@ -229,10 +208,11 @@ else
             fi
         fi
     else
-        # Run setup script
+        # Run setup script for manual mode
         echo -e "${BLUE}⚙️  Lancement de l'assistant de configuration...${NC}"
         if [ "$AI_INSTALL" = "true" ]; then
             echo -e "${YELLOW}Mode AI: Veuillez configurer manuellement .env après l'installation${NC}"
+            echo -e "${YELLOW}       Copiez .env.example vers .env et remplissez les valeurs${NC}"
         else
             node scripts/setup.js
         fi
@@ -297,10 +277,12 @@ echo -e "   2. Ouvrir Claude Desktop (si configuré)"
 echo -e "   3. Tester avec une commande simple"
 if [ "$SELECTED_AUTH" = "manual" ]; then
     echo -e "   4. ${YELLOW}npm run auth-user${NC} - Pour passer en mode OAuth2 (117 outils)"
+elif [ "$SELECTED_AUTH" = "oauth2" ] && [ "$AI_INSTALL" = "true" ]; then
+    echo -e "   4. ${YELLOW}npm run auth-user${NC} - Pour finaliser la configuration OAuth2"
 fi
 
 if [ "$SELECTED_AUTH" = "oauth2" ]; then
-    echo -e "\n${MAGENTA}🚀 Accès Complet Activé - 117 Outils Disponibles:${NC}"
+    echo -e "\n${MAGENTA}🚀 Accès Complet Configuré - 117 Outils Disponibles:${NC}"
     echo -e "   • 32 outils de base (écrans, layouts, médias, campagnes)"
     echo -e "   • 85 outils avancés (utilisateurs, analytics, alertes, automation)"
     echo -e "   • Gestion avancée utilisateurs et permissions"
@@ -310,7 +292,7 @@ if [ "$SELECTED_AUTH" = "oauth2" ]; then
     echo -e "   • Workflows et synchronisation multi-CMS"
     echo -e "   • Transitions et effets visuels professionnels"
 else
-    echo -e "\n${MAGENTA}📊 Fonctions de Base Activées - 32 Outils:${NC}"
+    echo -e "\n${MAGENTA}📊 Fonctions de Base Configurées - 32 Outils:${NC}"
     echo -e "   • Gestion complète des écrans et groupes"
     echo -e "   • Création et modification des layouts"
     echo -e "   • Upload et gestion des médias"
@@ -364,6 +346,10 @@ if [ "$AI_INSTALL" = "true" ]; then
     echo -e "   - AI_INSTALL=$AI_INSTALL"
     echo -e "   - AUTH_MODE=$AUTH_MODE"
     echo -e "   Mode final: $(if [ "$SELECTED_AUTH" = "oauth2" ]; then echo "OAuth2"; else echo "Manuel"; fi)"
+    if [ "$SELECTED_AUTH" = "oauth2" ]; then
+        echo -e "\n${YELLOW}⚠️  Configuration OAuth2 requise:${NC}"
+        echo -e "   Exécutez: ${YELLOW}npm run auth-user${NC} pour finaliser la configuration"
+    fi
 fi
 
 echo -e "\n${GREEN}Merci d'avoir choisi Xtranumerik pour vos solutions d'affichage dynamique!${NC}"
