@@ -10,21 +10,18 @@ export const datasetTools = [
   {
     name: 'dataset_list',
     description: 'List all datasets with filtering and search capabilities',
-    parameters: {
-      type: 'object',
-      properties: {
-        folderId: { type: 'number', description: 'Filter by folder ID' },
-        name: { type: 'string', description: 'Filter by dataset name' },
-        code: { type: 'string', description: 'Filter by dataset code' },
-        userId: { type: 'number', description: 'Filter by owner user ID' },
-        isRemote: { type: 'boolean', description: 'Filter by remote datasets' },
-        isLookup: { type: 'boolean', description: 'Filter by lookup datasets' },
-        tags: { type: 'string', description: 'Filter by tags (comma-separated)' },
-        exactTags: { type: 'boolean', description: 'Require exact tag matches', default: false },
-        start: { type: 'number', description: 'Pagination start' },
-        length: { type: 'number', description: 'Number of results to return' }
-      }
-    },
+    parameters: [
+      { name: 'folderId', type: 'number', description: 'Filter by folder ID', required: false },
+      { name: 'name', type: 'string', description: 'Filter by dataset name', required: false },
+      { name: 'code', type: 'string', description: 'Filter by dataset code', required: false },
+      { name: 'userId', type: 'number', description: 'Filter by owner user ID', required: false },
+      { name: 'isRemote', type: 'boolean', description: 'Filter by remote datasets', required: false },
+      { name: 'isLookup', type: 'boolean', description: 'Filter by lookup datasets', required: false },
+      { name: 'tags', type: 'string', description: 'Filter by tags (comma-separated)', required: false },
+      { name: 'exactTags', type: 'boolean', description: 'Require exact tag matches', required: false, default: false },
+      { name: 'start', type: 'number', description: 'Pagination start', required: false },
+      { name: 'length', type: 'number', description: 'Number of results to return', required: false }
+    ],
     handler: async (params: any, client: XiboClient) => {
       const queryParams: any = {};
       
@@ -51,16 +48,12 @@ export const datasetTools = [
   {
     name: 'dataset_get',
     description: 'Get detailed information about a specific dataset',
-    parameters: {
-      type: 'object',
-      properties: {
-        dataSetId: { type: 'number', description: 'Dataset ID', required: true },
-        includeColumns: { type: 'boolean', description: 'Include column definitions', default: true },
-        includeData: { type: 'boolean', description: 'Include dataset data', default: false },
-        limit: { type: 'number', description: 'Limit data rows returned', default: 100 }
-      },
-      required: ['dataSetId']
-    },
+    parameters: [
+      { name: 'dataSetId', type: 'number', description: 'Dataset ID', required: true },
+      { name: 'includeColumns', type: 'boolean', description: 'Include column definitions', required: false, default: true },
+      { name: 'includeData', type: 'boolean', description: 'Include dataset data', required: false, default: false },
+      { name: 'limit', type: 'number', description: 'Limit data rows returned', required: false, default: 100 }
+    ],
     handler: async (params: any, client: XiboClient) => {
       const dataset = await client.get(`/dataset/${params.dataSetId}`);
       
