@@ -6,7 +6,7 @@
 
 import axios, { AxiosResponse } from 'axios';
 import * as crypto from 'crypto';
-import { DirectUserSession, DirectAuthResponse, MFAChallenge, UserPermissionSet } from '../types.js';
+import { DirectUserSession, DirectAuthResponse, UserPermissionSet } from '../types.js';
 
 export class DirectUserAuth {
   private apiUrl: string;
@@ -223,7 +223,7 @@ export class DirectUserAuth {
   /**
    * Create session from redirect response
    */
-  private createSessionFromRedirect(response: AxiosResponse, cookies?: string[]): DirectAuthResponse {
+  private createSessionFromRedirect(_response: AxiosResponse, cookies?: string[]): DirectAuthResponse {
     const sessionId = this.extractSessionCookie(cookies || []) || this.generateSessionId();
     
     this.session = {
@@ -243,7 +243,7 @@ export class DirectUserAuth {
   /**
    * Create session from cookie
    */
-  private createSessionFromCookie(sessionCookie: string, cookies: string[]): DirectAuthResponse {
+  private createSessionFromCookie(sessionCookie: string, _cookies: string[]): DirectAuthResponse {
     this.session = {
       sessionId: sessionCookie,
       userId: 0, // Will be populated later
