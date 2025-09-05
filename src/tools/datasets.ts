@@ -5,7 +5,7 @@
  */
 
 import { XiboClient } from '../xibo-client.js';
-import { Dataset, DataSetColumn } from '../types.js';
+import { Dataset } from '../types.js';
 
 export const datasetTools = [
   {
@@ -75,7 +75,7 @@ export const datasetTools = [
         result.columns = columns.data;
       }
       
-      if (params.includeData) {
+      if (params.includeData === true) {
         const queryParams: any = {};
         if (params.limit) queryParams.length = params.limit;
         
