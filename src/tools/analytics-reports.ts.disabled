@@ -1,0 +1,36 @@
+/**
+ * Analytics and Reporting tools for Xibo MCP Server
+ * Complete data insights and performance monitoring
+ * @author Xtranumerik Inc.
+ * 
+ * TEMPORARILY DISABLED - Contains TypeScript errors that need to be fixed
+ */
+
+import { ToolDefinition } from '../types.js';
+import XiboClient from '../xibo-client.js';
+
+// NOTE: This file contains tools that use methods not yet implemented in XiboClient:
+// - generateReport, listReports, scheduleReport, getAnalyticsDashboard, 
+//   getPerformanceMetrics, getUsageStats
+// These methods need to be implemented or stubbed in XiboClient before re-enabling.
+
+const reportGenerate: ToolDefinition = {
+  name: 'report_generate',
+  description: 'Generate various types of reports with customizable parameters',
+  parameters: [
+    { name: 'reportType', type: 'string', description: 'Report type: proofofplay, summary, availability, bandwidth, usage', required: true },
+    { name: 'fromDate', type: 'string', description: 'Start date (YYYY-MM-DD)', required: true },
+    { name: 'toDate', type: 'string', description: 'End date (YYYY-MM-DD)', required: true },
+    { name: 'displayIds', type: 'string', description: 'Comma-separated display IDs', required: false },
+    { name: 'tags', type: 'string', description: 'Filter by tags (comma-separated)', required: false },
+    { name: 'format', type: 'string', description: 'Output format: json, csv, excel, pdf', required: false, default: 'json' },
+    { name: 'groupBy', type: 'string', description: 'Group by: day, week, month, display, layout', required: false }
+  ],
+  handler: async (params: any) => {
+    return '⚠️ This tool is temporarily disabled due to missing XiboClient methods. Please check back in a future version.';
+  }
+};
+
+export const analyticsReportTools: ToolDefinition[] = [
+  // Temporarily disabled
+];
