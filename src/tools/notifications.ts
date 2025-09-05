@@ -137,7 +137,7 @@ export const notificationTools = [
           if (layouts.data.data && layouts.data.data.length > 0) {
             emergencyLayoutId = layouts.data.data[0].layoutId;
           }
-        } catch (error) {
+        } catch {
           // Create emergency layout
           const emergencyLayout = {
             name: 'Emergency Alert Template',
