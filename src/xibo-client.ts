@@ -74,25 +74,56 @@ export class XiboClient {
     }
 
     try {
-      const authData = new URLSearchParams();
-      authData.append('grant_type', this.config.grantType!);
-      authData.append('client_id', this.config.clientId);
-      authData.append('client_secret', this.config.clientSecret);
+      // Try different authentication endpoints and methods
+      const authEndpoints = [
+        '/api/authorize/access_token',
+        '/api/oauth/token',
+        '/api/auth/access_token'
+      ];
 
-      if (this.refreshToken && this.config.grantType === 'access_code') {
-        authData.append('refresh_token', this.refreshToken);
-        authData.append('grant_type', 'refresh_token');
+      let authResponse: any = null;
+      let lastError: any = null;
+
+      for (const endpoint of authEndpoints) {
+        try {
+          const authData = new URLSearchParams();
+          authData.append('grant_type', this.config.grantType!);
+          authData.append('client_id', this.config.clientId);
+          authData.append('client_secret', this.config.clientSecret);
+
+          if (this.refreshToken && this.config.grantType === 'access_code') {
+            authData.append('refresh_token', this.refreshToken);
+            authData.append('grant_type', 'refresh_token');
+          }
+
+          console.log(`🔍 Trying authentication endpoint: ${endpoint}`);
+          
+          const response = await axios.post<XiboTokenResponse>(
+            `${this.config.apiUrl}${endpoint}`,
+            authData,
+            {
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'application/json'
+              },
+              timeout: 10000
+            }
+          );
+          
+          authResponse = response;
+          break;
+        } catch (error: any) {
+          lastError = error;
+          console.log(`❌ Failed endpoint ${endpoint}: ${error.response?.data?.error || error.message}`);
+          continue;
+        }
       }
 
-      const response = await axios.post<XiboTokenResponse>(
-        `${this.config.apiUrl}/api/authorize/access_token`,
-        authData,
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          }
-        }
-      );
+      if (!authResponse) {
+        throw lastError || new Error('All authentication endpoints failed');
+      }
+
+      const response = authResponse;
 
       this.accessToken = response.data.access_token;
       this.refreshToken = response.data.refresh_token || null;
@@ -199,7 +230,7 @@ export class XiboClient {
         'Content-Type': 'application/x-www-form-urlencoded'
       }
     });
-
+    
     return {
       data: response.data,
       status: response.status,
@@ -222,56 +253,39 @@ export class XiboClient {
   }
 
   /**
-   * Upload file to Xibo
+   * Upload file
    */
-  async uploadFile(filePath: string, name?: string): Promise<ApiResponse<any>> {
-    const form = new FormData();
+  async uploadFile(endpoint: string, filePath: string, additionalFields?: Record<string, any>): Promise<ApiResponse<any>> {
+    const formData = new FormData();
+    
+    // Add the file
+    const fileName = path.basename(filePath);
     const fileStream = fs.createReadStream(filePath);
-    const fileName = name || path.basename(filePath);
+    formData.append('file', fileStream, fileName);
+    
+    // Add additional form fields
+    if (additionalFields) {
+      Object.keys(additionalFields).forEach(key => {
+        formData.append(key, additionalFields[key]);
+      });
+    }
 
-    form.append('files[]', fileStream, fileName);
-    form.append('name', fileName);
-
-    const response = await this.axiosInstance.post('/library', form, {
-      headers: {
-        ...form.getHeaders()
-      }
-    });
-
-    return {
-      data: response.data,
-      status: response.status,
-      statusText: response.statusText,
-      headers: response.headers
-    };
-  }
-
-  /**
-   * Register application in Xibo (requires admin privileges)
-   */
-  async registerApplication(appConfig: {
-    name: string;
-    description?: string;
-    logo?: string;
-    redirectUri?: string;
-    clientCredentials?: boolean;
-    authCode?: boolean;
-  }): Promise<any> {
     try {
-      // This would typically be done through the Xibo admin interface
-      // as it requires admin privileges
-      const applicationData = {
-        name: appConfig.name,
-        description: appConfig.description || 'MCP Server for Xibo by Xtranumerik',
-        redirectUri: appConfig.redirectUri || 'http://localhost:3000/callback',
-        clientCredentials: appConfig.clientCredentials !== false ? 1 : 0,
-        authCode: appConfig.authCode ? 1 : 0
+      const response = await this.axiosInstance.post(endpoint, formData, {
+        headers: {
+          ...formData.getHeaders(),
+          'Accept': 'application/json'
+        },
+        timeout: 60000 // 1 minute timeout for file uploads
+      });
+      
+      return {
+        data: response.data,
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers
       };
-
-      const response = await this.post('/application', applicationData);
-      return response.data;
-    } catch (error: any) {
-      console.error('Failed to register application:', error.message);
+    } catch (error) {
       throw error;
     }
   }
@@ -281,15 +295,90 @@ export class XiboClient {
    */
   async testConnection(): Promise<boolean> {
     try {
+      console.log(`🔍 Testing connection to Xibo CMS at: ${this.config.apiUrl}`);
+      
+      // First check if the server is reachable
+      try {
+        const healthResponse = await axios.get(`${this.config.apiUrl}/api`, { timeout: 5000 });
+        console.log(`📡 Server responded with status: ${healthResponse.status}`);
+      } catch (error: any) {
+        console.log(`⚠️  Server health check failed: ${error.message}`);
+      }
+      
       await this.ensureAuthenticated();
       const response = await this.get('/clock');
       console.log('✅ Connection to Xibo successful');
       console.log(`   Server time: ${response.data}`);
       return true;
     } catch (error: any) {
-      console.error('❌ Connection test failed:', error.message);
+      console.error('❌ Connection test failed:', error.response?.data || error.message);
+      
+      // If authentication fails, try debug mode
+      if (error.message.includes('authenticate') || error.response?.status === 401) {
+        console.log('\n🔍 Running authentication debug...');
+        await this.debugAuthentication();
+      }
+      
       return false;
     }
+  }
+
+  /**
+   * Test different authentication methods
+   */
+  async debugAuthentication(): Promise<void> {
+    console.log('\n🔍 Debug Authentication Process');
+    console.log('================================');
+    
+    const methods = [
+      { grant_type: 'client_credentials', description: 'Client Credentials' },
+      { grant_type: 'password', description: 'Resource Owner Password' }
+    ];
+
+    const endpoints = [
+      '/api/authorize/access_token',
+      '/api/oauth/token', 
+      '/api/auth/access_token',
+      '/oauth/token'
+    ];
+
+    for (const method of methods) {
+      console.log(`\n📋 Testing ${method.description} (${method.grant_type})`);
+      
+      for (const endpoint of endpoints) {
+        try {
+          const authData = new URLSearchParams();
+          authData.append('grant_type', method.grant_type);
+          authData.append('client_id', this.config.clientId);
+          authData.append('client_secret', this.config.clientSecret);
+
+          console.log(`   🔗 ${endpoint}...`);
+          
+          const response = await axios.post(
+            `${this.config.apiUrl}${endpoint}`,
+            authData,
+            {
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'application/json'
+              },
+              timeout: 8000
+            }
+          );
+          
+          console.log(`   ✅ SUCCESS! Status: ${response.status}`);
+          console.log(`   📄 Response: ${JSON.stringify(response.data, null, 2)}`);
+          return;
+          
+        } catch (error: any) {
+          const status = error.response?.status || 'NO_RESPONSE';
+          const errorData = error.response?.data || error.message;
+          console.log(`   ❌ FAILED (${status}): ${JSON.stringify(errorData, null, 2)}`);
+        }
+      }
+    }
+    
+    console.log('\n❌ All authentication methods failed');
   }
 
   /**
@@ -300,9 +389,19 @@ export class XiboClient {
       const response = await this.get('/about');
       return response.data;
     } catch (error) {
-      // If /about endpoint doesn't exist, try /user/me as alternative
-      const response = await this.get('/user/me');
-      return { user: response.data };
+      // Fallback to simpler endpoint
+      try {
+        const clockResponse = await this.get('/clock');
+        return { 
+          status: 'online',
+          server_time: clockResponse.data 
+        };
+      } catch (fallbackError) {
+        return { 
+          status: 'unknown',
+          error: 'Could not retrieve server info'
+        };
+      }
     }
   }
 }
