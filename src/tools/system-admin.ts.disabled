@@ -1,0 +1,87 @@
+/**
+ * System Administration tools for Xibo MCP Server
+ * Complete system management and maintenance capabilities
+ * @author Xtranumerik Inc.
+ * 
+ * TEMPORARILY DISABLED - Contains TypeScript errors that need to be fixed
+ */
+
+import { ToolDefinition } from '../types.js';
+import XiboClient from '../xibo-client.js';
+
+// ========== SYSTEM INFORMATION TOOLS ==========
+
+const systemInfo: ToolDefinition = {
+  name: 'system_info',
+  description: 'Get comprehensive system information and version details',
+  parameters: [
+    { name: 'detailed', type: 'boolean', description: 'Include detailed system stats', required: false, default: false }
+  ],
+  handler: async (params: any) => {
+    const client: XiboClient = params._xiboClient;
+    
+    try {
+      const systemData = await client.getSystemInfo();
+      const healthData = await (client as any).healthCheck();
+      const versionData = await (client as any).getApiVersion();
+      
+      let result = `🖥️ **Informations système Xibo**\\n\\n`;
+      
+      // Basic system info
+      result += `**Version et build:**\\n`;
+      result += `   Version CMS: ${systemData.data.version || 'N/A'}\\n`;
+      result += `   Version DB: ${systemData.data.dbVersion || 'N/A'}\\n`;
+      result += `   Version API: ${versionData.data.version || 'N/A'}\\n`;
+      result += `   Environnement: ${systemData.data.environment || 'N/A'}\\n\\n`;
+      
+      // System status
+      result += `**Statut du système:**\\n`;
+      result += `   État: ${healthData.data.status || 'Unknown'}\\n`;
+      result += `   Bibliothèque: ${systemData.data.libraryLocation || 'N/A'}\\n`;
+      result += `   Fuseau horaire: ${systemData.data.timeZone || 'N/A'}\\n`;
+      result += `   Thème: ${systemData.data.theme || 'Default'}\\n\\n`;
+      
+      // Features and licensing
+      if (systemData.data.features) {
+        result += `**Fonctionnalités disponibles:**\\n`;
+        systemData.data.features.forEach((feature: string) => {
+          result += `   ✅ ${feature}\\n`;
+        });
+        result += `\\n`;
+      }
+      
+      if (systemData.data.isTrial !== undefined) {
+        result += `**Licence:**\\n`;
+        result += `   Type: ${systemData.data.isTrial ? 'Version d\\'essai' : 'Licence complète'}\\n`;
+        if (systemData.data.productName) {
+          result += `   Produit: ${systemData.data.productName}\\n`;
+        }
+        result += `\\n`;
+      }
+      
+      if (params.detailed) {
+        // Additional system stats
+        try {
+          const tasks = await client.getSystemTasks();
+          result += `**Tâches système:**\\n`;
+          result += `   Tâches actives: ${tasks.data.filter((t: any) => t.status === 'running').length}\\n`;
+          result += `   Tâches en attente: ${tasks.data.filter((t: any) => t.status === 'pending').length}\\n`;
+          result += `   Total: ${tasks.data.length}\\n\\n`;
+        } catch (error) {
+          result += `**Tâches système:** Non disponibles\\n\\n`;
+        }
+      }
+      
+      return result;
+    } catch (error: any) {
+      return `Erreur lors de la récupération des informations système: ${error.message}`;
+    }
+  }
+};
+
+// NOTE: This file is temporarily disabled due to TypeScript compilation errors.
+// The methods called don't exist on XiboClient and need to be implemented or stubbed.
+
+export const systemAdminTools: ToolDefinition[] = [
+  // Temporarily disabled
+];
