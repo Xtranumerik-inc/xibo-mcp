@@ -6,11 +6,16 @@
 
 // ========== AUTHENTICATION TYPES ==========
 
+export type AuthMode = 'client_credentials' | 'direct_user';
+
 export interface XiboAuthConfig {
   apiUrl: string;
-  clientId: string;
-  clientSecret: string;
+  clientId?: string;
+  clientSecret?: string;
+  username?: string;
+  password?: string;
   grantType?: 'client_credentials' | 'authorization_code';
+  authMode?: AuthMode;
 }
 
 export interface XiboTokenResponse {
@@ -36,6 +41,51 @@ export interface TokenData {
   refresh_token: string;
   expires_at: number;
   encrypted: boolean;
+}
+
+// Direct User Authentication Types
+export interface DirectUserSession {
+  sessionId: string;
+  userId: number;
+  username: string;
+  expires_at: number;
+  csrf_token?: string;
+  permissions?: UserPermissionSet;
+}
+
+export interface UserPermissionSet {
+  isAdmin: boolean;
+  canManageUsers: boolean;
+  canManageDisplays: boolean;
+  canManageLayouts: boolean;
+  canManageMedia: boolean;
+  canManageCampaigns: boolean;
+  canManageSchedules: boolean;
+  canManageDatasets: boolean;
+  canManageNotifications: boolean;
+  canViewReports: boolean;
+  canManageSystem: boolean;
+  level: 'viewer' | 'editor' | 'admin' | 'super_admin';
+  groupIds: number[];
+  folderAccess: number[];
+}
+
+export interface DirectAuthResponse {
+  success: boolean;
+  sessionId?: string;
+  userId?: number;
+  username?: string;
+  csrfToken?: string;
+  permissions?: UserPermissionSet;
+  requiresMFA?: boolean;
+  mfaToken?: string;
+  error?: string;
+}
+
+export interface MFAChallenge {
+  token: string;
+  method: 'totp' | 'sms' | 'email';
+  expiresIn: number;
 }
 
 // ========== CORE XIBO TYPES ==========
@@ -877,7 +927,7 @@ export interface ToolDefinition {
   parameters: ToolParameter[];
   handler: (params: any) => Promise<any>;
   category?: string;
-  requiresAuth?: 'client_credentials' | 'user_auth' | 'both';
+  requiresAuth?: 'client_credentials' | 'user_auth' | 'direct_user' | 'both';
   version?: string;
 }
 
@@ -896,6 +946,7 @@ export interface MCPConfig {
 }
 
 export interface XiboMCPConfig extends XiboAuthConfig, MCPConfig {
+  authMode: AuthMode;
   companyName?: string;
   logoPath?: string;
   geoZones?: Record<string, GeoZone>;
