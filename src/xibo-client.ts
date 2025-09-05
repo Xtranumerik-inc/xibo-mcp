@@ -1,5 +1,5 @@
 /**
- * Xibo API Client with OAuth Authentication
+ * Xibo API Client with OAuth Authentication - Enhanced User Auth Support
  * @author Xtranumerik Inc.
  */
 
@@ -8,6 +8,7 @@ import FormData from 'form-data';
 import * as fs from 'fs';
 import * as path from 'path';
 import { XiboAuthConfig, XiboTokenResponse, ApiResponse, ApiError } from './types.js';
+import { TokenManager } from './auth/token-manager.js';
 
 export class XiboClient {
   private axiosInstance: AxiosInstance;
@@ -15,6 +16,8 @@ export class XiboClient {
   private accessToken: string | null = null;
   private tokenExpiry: Date | null = null;
   private refreshToken: string | null = null;
+  private tokenManager: TokenManager | null = null;
+  private authMode: 'client_credentials' | 'user_tokens' = 'client_credentials';
 
   constructor(config: XiboAuthConfig) {
     this.config = {
@@ -24,6 +27,9 @@ export class XiboClient {
 
     // Remove trailing slash from API URL
     this.config.apiUrl = this.config.apiUrl.replace(/\/$/, '');
+
+    // Initialize token manager for user authentication
+    this.initializeTokenManager();
 
     // Create axios instance with base configuration
     this.axiosInstance = axios.create({
@@ -52,8 +58,8 @@ export class XiboClient {
       (response) => response,
       async (error: AxiosError) => {
         if (error.response?.status === 401) {
-          // Token expired, try to refresh
-          await this.authenticate(true);
+          // Token expired, try to refresh or re-authenticate
+          await this.handleTokenExpiry();
           
           // Retry the original request
           if (error.config) {
@@ -66,9 +72,72 @@ export class XiboClient {
   }
 
   /**
-   * Authenticate with Xibo CMS
+   * Initialize token manager for user authentication
+   */
+  private initializeTokenManager(): void {
+    try {
+      this.tokenManager = new TokenManager({
+        apiUrl: this.config.apiUrl,
+        clientId: this.config.clientId,
+        clientSecret: this.config.clientSecret
+      });
+
+      // Check if user tokens are available
+      if (this.tokenManager.isAuthenticated()) {
+        this.authMode = 'user_tokens';
+        console.log('🔐 Mode d\'authentification utilisateur activé');
+        
+        const userInfo = this.tokenManager.getUserInfo();
+        if (userInfo) {
+          console.log(`👤 Utilisateur connecté: ${userInfo.username}`);
+        }
+      }
+    } catch (error) {
+      console.log('⚠️  Token manager initialization failed, using client credentials');
+      this.authMode = 'client_credentials';
+    }
+  }
+
+  /**
+   * Handle token expiry (try user token refresh first, then fallback)
+   */
+  private async handleTokenExpiry(): Promise<void> {
+    if (this.authMode === 'user_tokens' && this.tokenManager) {
+      try {
+        const newToken = await this.tokenManager.getValidAccessToken();
+        if (newToken) {
+          this.accessToken = newToken;
+          return;
+        }
+      } catch (error) {
+        console.log('⚠️  User token refresh failed, falling back to client credentials');
+      }
+    }
+
+    // Fallback to client credentials
+    this.authMode = 'client_credentials';
+    await this.authenticate(true);
+  }
+
+  /**
+   * Authenticate with Xibo CMS (client credentials or user tokens)
    */
   private async authenticate(force: boolean = false): Promise<void> {
+    // Try user authentication first
+    if (this.authMode === 'user_tokens' && this.tokenManager) {
+      try {
+        const token = await this.tokenManager.getValidAccessToken();
+        if (token) {
+          this.accessToken = token;
+          return;
+        }
+      } catch (error) {
+        console.log('⚠️  User authentication failed, falling back to client credentials');
+        this.authMode = 'client_credentials';
+      }
+    }
+
+    // Client credentials authentication
     if (!force && this.isTokenValid()) {
       return;
     }
@@ -153,6 +222,16 @@ export class XiboClient {
    * Ensure authenticated before making requests
    */
   private async ensureAuthenticated(): Promise<void> {
+    if (this.authMode === 'user_tokens' && this.tokenManager) {
+      const token = await this.tokenManager.getValidAccessToken();
+      if (token) {
+        this.accessToken = token;
+        return;
+      }
+      // User token failed, fallback to client credentials
+      this.authMode = 'client_credentials';
+    }
+
     if (!this.isTokenValid()) {
       await this.authenticate();
     }
@@ -179,6 +258,68 @@ export class XiboClient {
         code: error.code || 'NETWORK_ERROR'
       }
     };
+  }
+
+  /**
+   * Get authentication status and user info
+   */
+  public getAuthStatus(): {
+    mode: string;
+    isAuthenticated: boolean;
+    userInfo?: any;
+    tokenStats?: any;
+  } {
+    const status = {
+      mode: this.authMode,
+      isAuthenticated: false,
+      userInfo: undefined,
+      tokenStats: undefined
+    };
+
+    if (this.authMode === 'user_tokens' && this.tokenManager) {
+      status.isAuthenticated = this.tokenManager.isAuthenticated();
+      status.userInfo = this.tokenManager.getUserInfo();
+      status.tokenStats = this.tokenManager.getTokenStats();
+    } else {
+      status.isAuthenticated = this.isTokenValid();
+    }
+
+    return status;
+  }
+
+  /**
+   * Switch to user authentication mode (if user tokens are available)
+   */
+  public async switchToUserAuth(): Promise<boolean> {
+    if (!this.tokenManager) {
+      return false;
+    }
+
+    if (this.tokenManager.isAuthenticated()) {
+      this.authMode = 'user_tokens';
+      const token = await this.tokenManager.getValidAccessToken();
+      if (token) {
+        this.accessToken = token;
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Logout user (only affects user tokens)
+   */
+  public logout(): void {
+    if (this.tokenManager) {
+      this.tokenManager.logout();
+    }
+    
+    if (this.authMode === 'user_tokens') {
+      this.authMode = 'client_credentials';
+      this.accessToken = null;
+      this.tokenExpiry = null;
+    }
   }
 
   // ========== PUBLIC API METHODS ==========
@@ -297,6 +438,13 @@ export class XiboClient {
     try {
       console.log(`🔍 Testing connection to Xibo CMS at: ${this.config.apiUrl}`);
       
+      // Show authentication mode
+      const authStatus = this.getAuthStatus();
+      console.log(`🔐 Authentication mode: ${authStatus.mode}`);
+      if (authStatus.userInfo) {
+        console.log(`👤 User: ${authStatus.userInfo.username}`);
+      }
+      
       // First check if the server is reachable
       try {
         const healthResponse = await axios.get(`${this.config.apiUrl}/api`, { timeout: 5000 });
@@ -364,7 +512,7 @@ export class XiboClient {
             timeout: 10000,
             headers: {
               'Accept': 'application/json',
-              'User-Agent': 'Xibo-MCP/1.0'
+              'User-Agent': 'Xibo-MCP/2.0'
             }
           };
 
@@ -427,11 +575,12 @@ export class XiboClient {
     
     console.log('\n❌ All authentication methods failed');
     console.log('\n🔧 Possible Solutions:');
-    console.log('   1. Check if application is configured as "Confidential Client" in Xibo CMS');
-    console.log('   2. Verify the "Client Credentials" grant type is enabled for your application');
-    console.log('   3. Ensure the client ID and secret are correctly copied from Xibo Applications page');
-    console.log('   4. Check if the Xibo server version supports the expected OAuth endpoints');
-    console.log('   5. Verify there are no network/firewall issues preventing authentication');
+    console.log('   1. Try user authentication with: npm run auth-user');
+    console.log('   2. Check if application is configured as "Confidential Client" in Xibo CMS');
+    console.log('   3. Verify the "Client Credentials" grant type is enabled for your application');
+    console.log('   4. Ensure the client ID and secret are correctly copied from Xibo Applications page');
+    console.log('   5. Check if the Xibo server version supports the expected OAuth endpoints');
+    console.log('   6. Verify there are no network/firewall issues preventing authentication');
   }
 
   /**
