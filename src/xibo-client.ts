@@ -736,8 +736,8 @@ export class XiboClient {
    * Create folder
    */
   async createFolder(name: string, parentId?: number): Promise<ApiResponse<any>> {
-    const data = { text: name };
-    if (parentId) data['parentId'] = parentId;
+    const data: { text: string; parentId?: number } = { text: name };
+    if (parentId) data.parentId = parentId;
     return this.post('/folder', data);
   }
 
@@ -935,9 +935,9 @@ export class XiboClient {
    * Search across all content types
    */
   async globalSearch(query: string, types?: string[], limit?: number): Promise<ApiResponse<any>> {
-    const params = { q: query };
-    if (types) params['types'] = types.join(',');
-    if (limit) params['limit'] = limit;
+    const params: { q: string; types?: string; limit?: number } = { q: query };
+    if (types) params.types = types.join(',');
+    if (limit) params.limit = limit;
     return this.get('/search', params);
   }
 
