@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * Xibo API Client with OAuth Authentication + Direct User Auth Support
  * Enhanced with all missing API endpoints for comprehensive CMS integration
@@ -796,6 +797,195 @@ export class XiboClient {
    */
   async updateSecuritySettings(settings: any): Promise<ApiResponse<void>> {
     return this.put('/security/settings', settings);
+  }
+
+  // ========== ANALYTICS AND REPORTING METHODS ==========
+
+  /**
+   * Generate various types of reports with customizable parameters
+   */
+  async generateReport(params: {
+    reportType: string;
+    fromDate: string;
+    toDate: string;
+    displayIds?: string;
+    tags?: string;
+    format?: string;
+    groupBy?: string;
+  }): Promise<ApiResponse<any>> {
+    const queryParams: any = {
+      reportType: params.reportType,
+      fromDate: params.fromDate,
+      toDate: params.toDate
+    };
+    
+    if (params.displayIds) queryParams.displayIds = params.displayIds;
+    if (params.tags) queryParams.tags = params.tags;
+    if (params.format) queryParams.format = params.format;
+    if (params.groupBy) queryParams.groupBy = params.groupBy;
+    
+    return this.get('/report', queryParams);
+  }
+
+  /**
+   * List available reports
+   */
+  async listReports(params?: any): Promise<ApiResponse<any[]>> {
+    return this.get('/report', params);
+  }
+
+  /**
+   * Schedule a report for automatic generation
+   */
+  async scheduleReport(reportData: {
+    reportType: string;
+    scheduleType: string;
+    fromDate?: string;
+    toDate?: string;
+    displayIds?: string;
+    email?: string;
+    [key: string]: any;
+  }): Promise<ApiResponse<any>> {
+    return this.post('/report/schedule', reportData);
+  }
+
+  /**
+   * Get analytics dashboard data
+   */
+  async getAnalyticsDashboard(params?: {
+    fromDate?: string;
+    toDate?: string;
+    displayIds?: string;
+    [key: string]: any;
+  }): Promise<ApiResponse<any>> {
+    return this.get('/analytics/dashboard', params);
+  }
+
+  /**
+   * Get performance metrics
+   */
+  async getPerformanceMetrics(params?: {
+    fromDate?: string;
+    toDate?: string;
+    displayIds?: string;
+    metricType?: string;
+    [key: string]: any;
+  }): Promise<ApiResponse<any>> {
+    return this.get('/analytics/performance', params);
+  }
+
+  /**
+   * Get usage statistics
+   */
+  async getUsageStats(params?: {
+    fromDate?: string;
+    toDate?: string;
+    displayIds?: string;
+    statType?: string;
+    [key: string]: any;
+  }): Promise<ApiResponse<any>> {
+    return this.get('/analytics/usage', params);
+  }
+
+  // ========== SYSTEM HEALTH AND VERSION METHODS ==========
+
+  /**
+   * Perform system health check
+   */
+  async healthCheck(): Promise<ApiResponse<any>> {
+    try {
+      // Try multiple health check endpoints that might exist
+      const endpoints = ['/health', '/status', '/ping', '/about'];
+      
+      for (const endpoint of endpoints) {
+        try {
+          const response = await this.get(endpoint);
+          return {
+            data: {
+              status: 'healthy',
+              endpoint: endpoint,
+              ...response.data
+            },
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers
+          };
+        } catch (error) {
+          // Continue to next endpoint
+          continue;
+        }
+      }
+      
+      // If no dedicated health endpoint exists, use clock as basic health check
+      const clockResponse = await this.get('/clock');
+      return {
+        data: {
+          status: 'healthy',
+          server_time: clockResponse.data,
+          endpoint: '/clock'
+        },
+        status: clockResponse.status,
+        statusText: clockResponse.statusText,
+        headers: clockResponse.headers
+      };
+    } catch (error: any) {
+      return {
+        data: {
+          status: 'unhealthy',
+          error: error.message
+        },
+        status: 503,
+        statusText: 'Service Unavailable',
+        headers: {}
+      };
+    }
+  }
+
+  /**
+   * Get API version information
+   */
+  async getApiVersion(): Promise<ApiResponse<{ version: string; build?: string; }>> {
+    try {
+      // Try to get version from about endpoint first
+      const aboutResponse = await this.get('/about');
+      
+      if (aboutResponse.data.version) {
+        return {
+          data: {
+            version: aboutResponse.data.version,
+            build: aboutResponse.data.build || aboutResponse.data.dbVersion,
+            cms: aboutResponse.data.productName || 'Xibo CMS',
+            environment: aboutResponse.data.environment
+          },
+          status: aboutResponse.status,
+          statusText: aboutResponse.statusText,
+          headers: aboutResponse.headers
+        };
+      }
+      
+      // Fallback to a basic version response
+      return {
+        data: {
+          version: 'Unknown',
+          build: 'Unknown'
+        },
+        status: 200,
+        statusText: 'OK',
+        headers: {}
+      };
+    } catch (error: any) {
+      // Return error with unknown version
+      return {
+        data: {
+          version: 'Unknown',
+          build: 'Unknown',
+          error: error.message
+        },
+        status: error.response?.status || 500,
+        statusText: error.response?.statusText || 'Internal Server Error',
+        headers: error.response?.headers || {}
+      };
+    }
   }
 
   // ========== TESTING AND CONNECTION METHODS ==========
